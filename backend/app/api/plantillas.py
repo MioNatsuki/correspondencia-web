@@ -15,6 +15,9 @@ from app.schemas import (
 from app.utils.file_utils import guardar_archivo, eliminar_archivo, validar_archivo_pdf
 from app.core.pdf_converter import PDFConverter
 from app.config import settings
+from typing import Dict, Any
+import datetime
+from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/plantillas", tags=["Plantillas"])
 
@@ -334,3 +337,146 @@ async def actualizar_campos_plantilla(
     except Exception as e:
         db.rollback()
         raise HTTPException(500, f"Error actualizando campos: {str(e)}")
+
+# ========== PREVIEW PLANTILLA ==========
+@router.post("/{plantilla_id}/preview")
+async def preview_plantilla(
+    plantilla_id: int,
+    datos_ejemplo: Optional[Dict[str, Any]] = None,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Genera preview de una plantilla con datos de ejemplo
+    """
+    try:
+        # Obtener plantilla con campos
+        plantilla = db.query(Plantilla).filter(
+            Plantilla.id == plantilla_id,
+            Plantilla.is_deleted == False
+        ).first()
+        
+        if not plantilla:
+            raise HTTPException(404, "Plantilla no encontrada")
+        
+        # Si no se proporcionan datos, usar datos dummy
+        if not datos_ejemplo:
+            # Obtener columnas del padrón del proyecto
+            proyecto = db.query(Proyecto).filter(
+                Proyecto.id == plantilla.proyecto_id
+            ).first()
+            
+            if proyecto and proyecto.tabla_padron:
+                from app.api.padrones import obtener_datos_ejemplo
+                
+                try:
+                    datos_padron = await obtener_datos_ejemplo(
+                        proyecto.tabla_padron, 
+                        1,  # limit
+                        db, 
+                        current_user
+                    )
+                    
+                    if datos_padron and len(datos_padron) > 0:
+                        datos_ejemplo = datos_padron[0].datas if hasattr(datos_padron[0], 'datas') else {}
+                except:
+                    pass
+            
+            # Si aún no hay datos, usar dummy
+            if not datos_ejemplo:
+                datos_ejemplo = {
+                    "nombre": "JUAN PÉREZ GONZÁLEZ",
+                    "cuenta": "100001",
+                    "codigo_afiliado": "AF001",
+                    "direccion": "AV. PRINCIPAL 123, COL. CENTRO",
+                    "telefono": "555-123-4567",
+                    "monto": "2,500.00",
+                    "fecha": datetime.now().strftime("%d/%m/%Y")
+                }
+        
+        # Construir definición de plantilla para PDFGenerator
+        # Obtener campos de la plantilla
+        campos = db.query(CampoPlantilla).filter(
+            CampoPlantilla.plantilla_id == plantilla_id,
+            CampoPlantilla.activo == True
+        ).order_by(CampoPlantilla.orden).all()
+        
+        # Convertir campos a formato para PDFGenerator
+        elementos = []
+        for campo in campos:
+            elemento = {
+                "id": campo.id,
+                "nombre": campo.nombre,
+                "tipo": campo.tipo,
+                "x": float(campo.x),
+                "y": float(campo.y),
+                "ancho": float(campo.ancho),
+                "alto": float(campo.alto),
+                "alineacion": campo.alineacion,
+                "fuente": campo.fuente,
+                "tamano_fuente": campo.tamano_fuente,
+                "color": campo.color,
+                "negrita": campo.negrita,
+                "cursiva": campo.cursiva,
+                "activo": campo.activo
+            }
+            
+            if campo.tipo == "texto":
+                elemento["texto_fijo"] = campo.texto_fijo
+            elif campo.tipo == "campo":
+                elemento["columna_padron"] = campo.columna_padron
+            elif campo.tipo == "compuesto":
+                elemento["componentes_json"] = campo.componentes_json
+            elif campo.tipo == "tabla":
+                elemento["tabla_config_json"] = campo.tabla_config_json
+            
+            elementos.append(elemento)
+        
+        plantilla_def = {
+            "pdf_base": plantilla.pdf_base if plantilla.pdf_base and os.path.exists(plantilla.pdf_base) else None,
+            "elementos": elementos
+        }
+        
+        # Generar PDF temporal
+        from app.core.pdf_service import pdf_generator
+        
+        success, message, pdf_path = pdf_generator.generar_pdf_individual(
+            plantilla_def, datos_ejemplo
+        )
+        
+        if not success:
+            raise HTTPException(500, f"Error generando preview: {message}")
+        
+        # Convertir primera página a imagen
+        img_path, error = PDFConverter.pdf_a_imagen(pdf_path, 1, 1.5, "PNG")
+        
+        if error:
+            # Si no se puede convertir, devolver el PDF
+            return FileResponse(
+                pdf_path,
+                media_type="application/pdf",
+                filename=f"preview_{plantilla_id}.pdf"
+            )
+        
+        # Preparar respuesta
+        img_filename = os.path.basename(img_path)
+        img_url = f"/uploads/previews/{img_filename}"
+        
+        # Limpiar PDF temporal
+        try:
+            os.remove(pdf_path)
+        except:
+            pass
+        
+        return {
+            "success": True,
+            "preview_url": img_url,
+            "datos_usados": datos_ejemplo,
+            "plantilla_id": plantilla_id,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error generando preview: {str(e)}")
