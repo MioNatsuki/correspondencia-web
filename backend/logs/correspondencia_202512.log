@@ -22,3 +22,4 @@
 2025-12-12 15:43:19,761 - correspondencia - INFO - API Request: GET / Status: 200 Time: 1.00ms
 2025-12-12 15:45:46,898 - correspondencia - INFO - API Request: GET / Status: 200 Time: 1.00ms
 2025-12-12 15:45:51,424 - correspondencia - INFO - API Request: GET /login Status: 404 Time: 0.00ms
+2025-12-15 10:46:00,186 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
