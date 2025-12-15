@@ -1,0 +1,24 @@
+2025-12-12 13:23:37,882 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-12 13:23:43,433 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-12 13:30:20,014 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-12 13:37:40,985 - correspondencia - INFO - API Request: GET / Status: 200 Time: 1.00ms
+2025-12-12 13:37:41,110 - correspondencia - INFO - API Request: GET /favicon.ico Status: 404 Time: 2.01ms
+2025-12-12 13:37:48,723 - correspondencia - INFO - API Request: GET /index Status: 404 Time: 1.07ms
+2025-12-12 13:49:45,403 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-12 14:00:20,210 - correspondencia - INFO - API Request: GET /health Status: 200 Time: 1.03ms
+2025-12-12 14:00:34,970 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-12 15:22:12,677 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 0.00ms
+2025-12-12 15:22:12,686 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 403 Time: 0.78ms
+2025-12-12 15:22:15,631 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-12 15:22:22,030 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 2.96ms
+2025-12-12 15:22:22,037 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 403 Time: 2.12ms
+2025-12-12 15:22:44,710 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 0.00ms
+2025-12-12 15:22:44,717 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 403 Time: 0.00ms
+2025-12-12 15:38:28,794 - correspondencia - INFO - API Request: GET / Status: 200 Time: 1.01ms
+2025-12-12 15:38:34,316 - correspondencia - INFO - API Request: GET /login Status: 404 Time: 1.00ms
+2025-12-12 15:40:25,842 - correspondencia - INFO - API Request: GET /login/ Status: 404 Time: 1.04ms
+2025-12-12 15:40:25,955 - correspondencia - INFO - API Request: GET /favicon.ico Status: 404 Time: 0.00ms
+2025-12-12 15:40:30,234 - correspondencia - INFO - API Request: GET / Status: 200 Time: 1.04ms
+2025-12-12 15:43:19,761 - correspondencia - INFO - API Request: GET / Status: 200 Time: 1.00ms
+2025-12-12 15:45:46,898 - correspondencia - INFO - API Request: GET / Status: 200 Time: 1.00ms
+2025-12-12 15:45:51,424 - correspondencia - INFO - API Request: GET /login Status: 404 Time: 0.00ms

@@ -155,3 +155,20 @@ class ConfiguracionSistema(Base):
     tipo = Column(String(20))
     descripcion = Column(Text)
     editable = Column(Boolean, default=True)
+class MatchExcepciones(Base):
+    __tablename__ = "match_excepciones"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    proyecto_id = Column(Integer, ForeignKey("proyectos.id"))
+    cuenta_csv = Column(String(100))
+    codigo_csv = Column(String(100))
+    cuenta_padron = Column(String(100))
+    codigo_padron = Column(String(100))
+    tipo_match = Column(String(50))
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
+    activo = Column(Boolean, default=True)
+    
+    # Relationships (optional but good for clarity)
+    proyecto = relationship("Proyecto")
+    usuario = relationship("Usuario")
