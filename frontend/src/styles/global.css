@@ -1,0 +1,102 @@
+/* Importar fuentes kawaii pero formales */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e6e6e6 100%);
+  min-height: 100vh;
+  color: #2c3e50;
+}
+
+/* Scrollbar kawaii */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #aae6d9;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7ab3a5;
+}
+
+/* Animaciones suaves */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Loader kawaii */
+.kawaii-loader {
+  display: inline-block;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.kawaii-loader div {
+  position: absolute;
+  border: 4px solid #aae6d9;
+  border-radius: 50%;
+  animation: kawaii-loader 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+  border-color: #aae6d9 transparent transparent transparent;
+}
+
+.kawaii-loader div:nth-child(1) {
+  animation-delay: -0.45s;
+}
+
+.kawaii-loader div:nth-child(2) {
+  animation-delay: -0.3s;
+}
+
+.kawaii-loader div:nth-child(3) {
+  animation-delay: -0.15s;
+}
+
+@keyframes kawaii-loader {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Badges y tags */
+.kawaii-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: linear-gradient(135deg, #aae6d9, #c8cbc1);
+  color: #2c3e50;
+  box-shadow: 0 2px 8px rgba(170, 230, 217, 0.3);
+}
+
+/* Efectos hover suaves */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}

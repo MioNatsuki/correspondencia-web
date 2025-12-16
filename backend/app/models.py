@@ -172,3 +172,22 @@ class MatchExcepciones(Base):
     # Relationships (optional but good for clarity)
     proyecto = relationship("Proyecto")
     usuario = relationship("Usuario")
+
+class EmisionesFinal(Base):
+    __tablename__ = "emisiones_final"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    emision_temp_id = Column(Integer)
+    proyecto_id = Column(Integer, ForeignKey("proyectos.id"))
+    plantilla_id = Column(Integer, ForeignKey("plantillas.id"))
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    datos_completos = Column(JSON)
+    archivo_generado = Column(String(500))
+    fecha_generacion = Column(DateTime(timezone=True))
+    estado_generacion = Column(String(20))
+    fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relaciones
+    proyecto = relationship("Proyecto")
+    plantilla = relationship("Plantilla")
+    usuario = relationship("Usuario")
