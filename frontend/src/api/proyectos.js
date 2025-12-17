@@ -7,7 +7,7 @@ export const proyectosAPI = {
     return response.data;
   },
   
-  // Obtener un proyecto específicodeleteProyecto:
+  // Obtener un proyecto específico
   getProyecto: async (id) => {
     const response = await api.get(`/proyectos/${id}`);
     return response.data;
@@ -25,18 +25,19 @@ export const proyectosAPI = {
     return response.data;
   },
   
-  // En proyectosAPI, actualizar:
-deleteProyecto: async (id, eliminacionPermanente = false) => {
-  const response = await api.delete(`/proyectos/${id}`, {
-    params: { eliminacion_permanente: eliminacionPermanente }
-  });
-  return response.data;
-},
-
-restaurarProyecto: async (id) => {
-  const response = await api.post(`/proyectos/${id}/restaurar`);
-  return response.data;
-},
+  // Eliminar proyecto (CORREGIDO)
+  deleteProyecto: async (id, eliminacionPermanente = false) => {
+    const response = await api.delete(`/proyectos/${id}`, {
+      params: { eliminacion_permanente: eliminacionPermanente }
+    });
+    return response.data;
+  },
+  
+  // Restaurar proyecto
+  restaurarProyecto: async (id) => {
+    const response = await api.post(`/proyectos/${id}/restaurar`);
+    return response.data;
+  },
   
   // Obtener estadísticas del proyecto
   getEstadisticas: async (id) => {

@@ -59,7 +59,7 @@ async def obtener_estadisticas_dashboard(
         ).count()
         
         # 2. Plantillas
-        total_plantillas = db.query(Plantilla).filter(
+        total_plantillas = db.query(Plantilla.id).filter(
             Plantilla.is_deleted == False
         ).count()
         

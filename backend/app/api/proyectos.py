@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict  # <-- Agrega Dict aquí
 import os
 from pathlib import Path
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin
-from app.models import Usuario, Proyecto, IdentificadorPadrones, Plantilla
+from app.models import Usuario, Proyecto, IdentificadorPadrones, Plantilla  # <-- Agrega Plantilla
 from app.schemas import (
     ProyectoCreate, ProyectoUpdate, ProyectoResponse,
     SuccessResponse, ErrorResponse
@@ -421,6 +421,76 @@ async def restaurar_proyecto(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error restaurando proyecto: {str(e)}"
+        )
+
+@router.get("/", response_model=List[ProyectoResponse])
+async def listar_proyectos(
+    solo_activos: bool = True,
+    incluir_eliminados: bool = False,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=1000),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """
+    Lista todos los proyectos (filtrados por usuario si no es admin)
+    """
+    try:
+        # Construir query base - SIMPLIFICADO PARA EVITAR ERRORES
+        query = db.query(Proyecto)
+        
+        # Si no se incluyen eliminados, filtrar
+        if not incluir_eliminados:
+            query = query.filter(Proyecto.is_deleted == False)
+        
+        # Filtrar por activos si se solicita
+        if solo_activos:
+            query = query.filter(Proyecto.activo == True)
+        
+        # Si el usuario no es admin, filtrar por proyectos permitidos
+        if current_user.rol not in ["admin", "superadmin"]:
+            if not current_user.proyecto_permitido or current_user.proyecto_permitido == "":
+                return []  # No tiene proyectos asignados
+            
+            # Convertir string de proyectos permitidos a lista de IDs
+            proyectos_permitidos = [
+                int(p.strip()) for p in current_user.proyecto_permitido.split(',') 
+                if p.strip().isdigit()
+            ]
+            
+            if proyectos_permitidos:
+                query = query.filter(Proyecto.id.in_(proyectos_permitidos))
+            else:
+                return []  # No hay proyectos válidos
+        
+        # Ordenar y paginar
+        proyectos = query.order_by(Proyecto.fecha_creacion.desc()).offset(skip).limit(limit).all()
+        
+        # SIMPLIFICAR: solo devolver datos básicos sin contar plantillas
+        proyectos_con_info = []
+        for proyecto in proyectos:
+            proyecto_dict = {
+                "id": proyecto.id,
+                "nombre": proyecto.nombre,
+                "descripcion": proyecto.descripcion,
+                "tabla_padron": proyecto.tabla_padron,
+                "logo": proyecto.logo,
+                "activo": proyecto.activo,
+                "fecha_creacion": proyecto.fecha_creacion,
+                "config_json": proyecto.config_json or {},
+                "is_deleted": proyecto.is_deleted,
+                "num_plantillas": 0,  # Valor temporal
+            }
+            
+            proyectos_con_info.append(proyecto_dict)
+        
+        return proyectos_con_info
+        
+    except Exception as e:
+        print(f"Error listando proyectos: {str(e)}")  # Debug
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error listando proyectos: {str(e)}"
         )
 
 @router.get("/{proyecto_id}/estadisticas")

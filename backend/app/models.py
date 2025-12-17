@@ -68,16 +68,18 @@ class Plantilla(Base):
     proyecto_id = Column(Integer, ForeignKey("proyectos.id"), nullable=False)
     nombre = Column(String(100), nullable=False)
     descripcion = Column(Text)
-    pdf_base = Column(String(500))  # Ruta del PDF base
-    config_json = Column(JSON)  # JSON con configuración completa
+    ruta_archivo = Column(String(500))  # ← NUEVO (nombre real en BD)
+    tipo_plantilla = Column(String(100))  # Si existe en BD
+    campos_json = Column(JSON)  # Si existe en BD
     activa = Column(Boolean, default=True)
     fecha_creacion = Column(DateTime(timezone=True), server_default=func.now())
-    usuario_creador_id = Column(Integer, ForeignKey("usuarios.id"))
+    usuario_creador = Column(Integer, ForeignKey("usuarios.id"))
     is_deleted = Column(Boolean, default=False)
+    campos_json_backup = Column(JSON)  # Si existe en BD
     
     # Relaciones
     proyecto = relationship("Proyecto", back_populates="plantillas")
-    usuario_creador = relationship("Usuario")
+    creador = relationship("Usuario", foreign_keys=[usuario_creador])
 
 class CampoPlantilla(Base):
     __tablename__ = "campos_plantilla"
