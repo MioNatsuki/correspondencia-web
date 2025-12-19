@@ -62,10 +62,11 @@ const EditarProyecto = () => {
     enabled: !!id,
   });
   
-  // Obtener padrones
-  const { data: padrones } = useQuery({
+  // Obtener padrones REALES
+  const { data: padrones, isLoading: isLoadingPadrones } = useQuery({
     queryKey: ['padrones'],
     queryFn: () => padronesAPI.getPadrones({ activos: true }),
+    enabled: !!id || true, // Siempre cargar padrones
   });
   
   // Mutación para actualizar
@@ -106,7 +107,7 @@ const EditarProyecto = () => {
       setFormData({
         nombre: proyecto.nombre || '',
         descripcion: proyecto.descripcion || '',
-        tabla_padron: proyecto.tabla_padron || '',
+        tabla_padron: proyecto.tabla_padron || '', // UUID del padrón
         activo: proyecto.activo !== undefined ? proyecto.activo : true,
         logoPreview: proyecto.logo || null,
       });
@@ -179,7 +180,7 @@ const EditarProyecto = () => {
     const dataToSend = new FormData();
     dataToSend.append('nombre', formData.nombre);
     dataToSend.append('descripcion', formData.descripcion);
-    dataToSend.append('tabla_padron', formData.tabla_padron);
+    dataToSend.append('tabla_padron', formData.tabla_padron); // UUID del padrón
     dataToSend.append('activo', formData.activo);
     dataToSend.append('eliminar_logo', eliminarLogo);
     
@@ -322,19 +323,21 @@ const EditarProyecto = () => {
                       value={formData.tabla_padron}
                       label="Padrón asociado *"
                       onChange={handleChange}
+                      disabled={isLoadingPadrones}
                     >
                       <MenuItem value="">
-                        <em>Seleccionar padrón</em>
+                        <em>{isLoadingPadrones ? 'Cargando padrones...' : 'Seleccionar padrón'}</em>
                       </MenuItem>
                       {padrones?.map((padron) => (
-                        <MenuItem key={padron.uuid} value={padron.uuid}>
+                        <MenuItem key={padron.uuid_padron} value={padron.uuid_padron}>
+                          {/* Mostrar nombre_tabla (como en Python) */}
                           {padron.nombre_tabla} 
                           {padron.descripcion && ` - ${padron.descripcion.substring(0, 30)}...`}
                         </MenuItem>
                       ))}
                     </Select>
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Selecciona la tabla de padrón que usará este proyecto
+                      Selecciona el padrón que usará este proyecto (se guarda el UUID)
                     </Typography>
                   </FormControl>
                 </Grid>
@@ -473,6 +476,11 @@ const EditarProyecto = () => {
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
                   <strong>Plantillas:</strong> {proyecto?.num_plantillas || 0}
                 </Typography>
+                {proyecto?.tabla_padron && (
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                    <strong>UUID Padrón:</strong> {proyecto.tabla_padron.substring(0, 8)}...
+                  </Typography>
+                )}
               </Box>
             </Paper>
           </Grid>

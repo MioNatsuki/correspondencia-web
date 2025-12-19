@@ -23,12 +23,11 @@ import {
   Select,
   Switch,
   FormControlLabel,
-  Tabs,
-  Tab,
   Alert,
   Avatar,
   Tooltip,
   Fab,
+  InputAdornment,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -53,10 +52,12 @@ import {
   AiOutlineSearch,
   AiOutlineRest,
   AiOutlineInfoCircle,
+  AiOutlineSortAscending,
+  AiOutlineCalendar,
 } from 'react-icons/ai';
 import { BiStats, BiTrash, BiArchive } from 'react-icons/bi';
 import { RiShieldKeyholeLine } from 'react-icons/ri';
-import { BsArrowRight, BsThreeDotsVertical } from 'react-icons/bs';
+import { BsArrowRight, BsThreeDotsVertical, BsSortAlphaDown, BsSortAlphaUp } from 'react-icons/bs';
 
 const ListaProyectos = () => {
   const { user, isAdmin } = useAuth();
@@ -64,70 +65,83 @@ const ListaProyectos = () => {
   const queryClient = useQueryClient();
   
   // Estados
-  const [tabValue, setTabValue] = useState(0);
-  const [openDialog, setOpenDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [proyectoToDelete, setProyectoToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterActivos, setFilterActivos] = useState(true);
-  
-  // Datos del formulario
-  const [formData, setFormData] = useState({
-    nombre: '',
-    descripcion: '',
-    tabla_padron: '',
-    logo: null,
-  });
+  const [orden, setOrden] = useState('nombre_asc');
   
   // Obtener proyectos
   const { data: proyectos, isLoading, error, refetch } = useQuery({
-    queryKey: ['proyectos', tabValue],
+    queryKey: ['proyectos'],
     queryFn: () => proyectosAPI.getProyectos({
-      solo_activos: tabValue === 0,
-      incluir_eliminados: tabValue === 2,
+      incluir_eliminados: false,
+      solo_activos: true,
     }),
   });
   
-  // Obtener padrones para el select
-  const { data: padrones } = useQuery({
-    queryKey: ['padrones'],
-    queryFn: () => padronesAPI.getPadrones({ activos: true }),
-    enabled: openDialog,
-  });
-  
-  // Mutación para crear proyecto
-  const createMutation = useMutation({
-    mutationFn: (data) => proyectosAPI.createProyecto(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['proyectos']);
-      setOpenDialog(false);
-      resetForm();
-      Swal.fire({
-        icon: 'success',
-        title: '¡Proyecto creado!',
-        text: 'El proyecto ha sido creado exitosamente',
-        background: '#ffffff',
-        color: '#2c3e50',
-        confirmButtonColor: '#aae6d9',
-        timer: 2000,
-        showConfirmButton: false,
+  // Filtrar y ordenar proyectos
+  const proyectosFiltrados = React.useMemo(() => {
+    if (!proyectos) return [];
+    
+    let filtered = [...proyectos];
+    
+    // 1. Aplicar búsqueda
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(proyecto => {
+        // Buscar en nombre
+        if (proyecto.nombre?.toLowerCase().includes(term)) return true;
+        
+        // Buscar en descripción
+        if (proyecto.descripcion?.toLowerCase().includes(term)) return true;
+        
+        // Buscar en nombre del padrón
+        if (proyecto.padron_info?.nombre_tabla?.toLowerCase().includes(term)) return true;
+        
+        // Buscar en UUID del padrón
+        if (proyecto.tabla_padron?.toLowerCase().includes(term)) return true;
+        
+        return false;
       });
-    },
-    onError: (error) => {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.detail || 'Error creando proyecto',
-        background: '#ffffff',
-        color: '#2c3e50',
-        confirmButtonColor: '#e6b0aa',
-      });
-    },
-  });
+    }
+    
+    // 2. Aplicar ordenamiento
+    filtered.sort((a, b) => {
+      switch (orden) {
+        case 'nombre_asc':
+          return a.nombre?.localeCompare(b.nombre);
+        
+        case 'nombre_desc':
+          return b.nombre?.localeCompare(a.nombre);
+        
+        case 'fecha_desc':
+          return new Date(b.fecha_creacion) - new Date(a.fecha_creacion);
+        
+        case 'fecha_asc':
+          return new Date(a.fecha_creacion) - new Date(b.fecha_creacion);
+        
+        case 'padron_asc':
+          const padronA = a.padron_info?.nombre_tabla || 'ZZZ';
+          const padronB = b.padron_info?.nombre_tabla || 'ZZZ';
+          return padronA.localeCompare(padronB);
+        
+        case 'padron_desc':
+          const padronA2 = a.padron_info?.nombre_tabla || '';
+          const padronB2 = b.padron_info?.nombre_tabla || '';
+          return padronB2.localeCompare(padronA2);
+        
+        default:
+          return 0;
+      }
+    });
+    
+    return filtered;
+  }, [proyectos, searchTerm, orden]);
   
   // Mutación para eliminar proyecto
   const deleteMutation = useMutation({
-    mutationFn: ({ id, permanente }) => proyectosAPI.deleteProyecto(id, permanente),
+    mutationFn: ({ id, permanente }) => 
+      proyectosAPI.deleteProyecto(id, permanente),
     onSuccess: () => {
       queryClient.invalidateQueries(['proyectos']);
       setOpenDeleteDialog(false);
@@ -154,94 +168,20 @@ const ListaProyectos = () => {
     },
   });
   
-  // Filtrar proyectos por búsqueda
-  const filteredProyectos = proyectos?.filter(proyecto => {
-    const matchesSearch = !searchTerm || 
-      proyecto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      proyecto.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filterActivos ? proyecto.activo : true;
-    
-    return matchesSearch && matchesFilter;
-  });
-  
-  const resetForm = () => {
-    setFormData({
-      nombre: '',
-      descripcion: '',
-      tabla_padron: '',
-      logo: null,
-    });
-  };
-  
-  const handleOpenDialog = () => {
-    resetForm();
-    setOpenDialog(true);
-  };
-  
-  const handleCloseDialog = () => {
-    setOpenDialog(false);
-    resetForm();
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!formData.nombre || !formData.tabla_padron) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'Campos requeridos',
-        text: 'Nombre y padrón son campos obligatorios',
-        background: '#ffffff',
-        color: '#2c3e50',
-        confirmButtonColor: '#aae6d9',
-      });
-      return;
-    }
-    
-    createMutation.mutate(formData);
-  };
-  
   const handleDeleteClick = (proyecto, permanente = false) => {
-  setProyectoToDelete({ 
-    id: proyecto.id, 
-    nombre: proyecto.nombre, 
-    permanente 
-  });
-  setOpenDeleteDialog(true);
-};
+    setProyectoToDelete({ 
+      id: proyecto.id, 
+      nombre: proyecto.nombre, 
+      permanente 
+    });
+    setOpenDeleteDialog(true);
+  };
   
   const handleConfirmDelete = () => {
     if (proyectoToDelete) {
       deleteMutation.mutate({
         id: proyectoToDelete.id,
         permanente: proyectoToDelete.permanente,
-      });
-    }
-  };
-  
-  const handleRestoreProject = async (proyectoId) => {
-    try {
-      await proyectosAPI.restaurarProyecto(proyectoId);
-      queryClient.invalidateQueries(['proyectos']);
-      Swal.fire({
-        icon: 'success',
-        title: '¡Restaurado!',
-        text: 'El proyecto ha sido restaurado',
-        background: '#ffffff',
-        color: '#2c3e50',
-        confirmButtonColor: '#aae6d9',
-        timer: 1500,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: error.response?.data?.detail || 'Error restaurando proyecto',
-        background: '#ffffff',
-        color: '#2c3e50',
-        confirmButtonColor: '#e6b0aa',
       });
     }
   };
@@ -268,7 +208,7 @@ const ListaProyectos = () => {
   }
   
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
+    <Container maxWidth="xl" sx={{ mt: 4, mb: 6 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
@@ -308,7 +248,7 @@ const ListaProyectos = () => {
           {isAdmin && (
             <CustomButton
               icon="add"
-              onClick={handleOpenDialog}
+              onClick={() => navigate('/proyectos/nuevo')}
               sx={{ height: 48 }}
             >
               Nuevo Proyecto
@@ -316,90 +256,143 @@ const ListaProyectos = () => {
           )}
         </Box>
         
-        {/* Filtros y búsqueda */}
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 3 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
+        {/* Filtros y búsqueda MEJORADO */}
+        <Paper sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: '#ffffff' }}>
+          <Grid container spacing={3} alignItems="center">
+            {/* Búsqueda AMPLIADA */}
+            <Grid item xs={12} md={7}>
               <TextField
                 fullWidth
-                placeholder="Buscar proyectos..."
+                placeholder="🔍 Buscar proyectos por nombre, descripción, padrón..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
-                  startAdornment: <AiOutlineSearch style={{ marginRight: 8, color: '#aae6d9' }} />,
-                }}
-                size="small"
-                sx={{
-                  '& .MuiOutlinedInput-root': {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <AiOutlineSearch style={{ color: '#aae6d9' }} />
+                    </InputAdornment>
+                  ),
+                  sx: { 
                     borderRadius: 2,
-                  },
+                    fontFamily: "'Nunito', sans-serif",
+                    fontSize: '0.95rem'
+                  }
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            
+            {/* Ordenamiento MEJORADO */}
+            <Grid item xs={12} md={5}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={filterActivos}
-                      onChange={(e) => setFilterActivos(e.target.checked)}
-                      color="primary"
-                    />
-                  }
-                  label="Mostrar solo activos"
-                />
-                <Button
-                  variant="outlined"
+                <Typography variant="body2" sx={{ color: '#5a6b70', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  Ordenar por:
+                </Typography>
+                
+                <Select
+                  value={orden}
+                  onChange={(e) => setOrden(e.target.value)}
                   size="small"
-                  startIcon={<AiOutlineFilter />}
-                  onClick={() => {
-                    setSearchTerm('');
-                    setFilterActivos(true);
+                  sx={{ 
+                    flexGrow: 1,
+                    minWidth: 200,
+                    borderRadius: 2,
+                    bgcolor: '#ffffff',
+                    fontFamily: "'Nunito', sans-serif",
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#aae6d9',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#7ab3a5',
+                    }
                   }}
-                  sx={{ borderRadius: 2 }}
                 >
-                  Limpiar filtros
-                </Button>
+                  <MenuItem value="nombre_asc">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <BsSortAlphaDown />
+                      <span>Nombre (A → Z)</span>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="nombre_desc">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <BsSortAlphaUp />
+                      <span>Nombre (Z → A)</span>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="fecha_desc">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AiOutlineCalendar />
+                      <span>Más recientes</span>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="fecha_asc">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AiOutlineCalendar />
+                      <span>Más antiguos</span>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="padron_asc">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AiOutlineTeam />
+                      <span>Padrón (A → Z)</span>
+                    </Box>
+                  </MenuItem>
+                  <MenuItem value="padron_desc">
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AiOutlineTeam />
+                      <span>Padrón (Z → A)</span>
+                    </Box>
+                  </MenuItem>
+                </Select>
+                
+                {(searchTerm || orden !== 'nombre_asc') && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setOrden('nombre_asc');
+                    }}
+                    sx={{ 
+                      borderRadius: 2,
+                      borderColor: '#e6b0aa',
+                      color: '#b27a75',
+                      '&:hover': {
+                        borderColor: '#b27a75',
+                        bgcolor: 'rgba(230, 176, 170, 0.1)'
+                      }
+                    }}
+                  >
+                    Limpiar
+                  </Button>
+                )}
               </Box>
             </Grid>
           </Grid>
+          
+          {/* Contador de resultados */}
+          {proyectos && (
+            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Chip 
+                label={`${proyectosFiltrados.length} de ${proyectos.length} proyectos`}
+                size="small"
+                sx={{ 
+                  bgcolor: 'rgba(170, 230, 217, 0.1)',
+                  color: '#7ab3a5',
+                  fontWeight: 500
+                }}
+              />
+              {searchTerm && (
+                <Typography variant="caption" color="text.secondary">
+                  Filtrados por: "{searchTerm}"
+                </Typography>
+              )}
+            </Box>
+          )}
         </Paper>
       </Box>
       
-      {/* Tabs */}
-      <Paper sx={{ mb: 3, borderRadius: 3 }}>
-        <Tabs
-          value={tabValue}
-          onChange={(e, newValue) => setTabValue(newValue)}
-          sx={{
-            '& .MuiTab-root': {
-              fontWeight: 600,
-              textTransform: 'none',
-            },
-          }}
-        >
-          <Tab 
-            icon={<AiOutlineProject style={{ marginRight: 8 }} />} 
-            iconPosition="start" 
-            label="Activos" 
-          />
-          <Tab 
-            icon={<AiOutlineFileText style={{ marginRight: 8 }} />} 
-            iconPosition="start" 
-            label="Inactivos" 
-          />
-          {isAdmin && (
-            <Tab 
-              icon={<BiArchive style={{ marginRight: 8 }} />} 
-              iconPosition="start" 
-              label="Eliminados" 
-            />
-          )}
-        </Tabs>
-      </Paper>
-      
       {/* Lista de proyectos */}
-      {filteredProyectos?.length === 0 ? (
+      {proyectosFiltrados?.length === 0 ? (
         <Paper
           sx={{
             p: 8,
@@ -410,87 +403,99 @@ const ListaProyectos = () => {
         >
           <AiOutlineProject size={64} color="#aae6d9" style={{ marginBottom: 16 }} />
           <Typography variant="h6" gutterBottom color="text.secondary">
-            {tabValue === 2 ? 'No hay proyectos eliminados' : 
-             tabValue === 1 ? 'No hay proyectos inactivos' : 
-             'No hay proyectos activos'}
+            {searchTerm ? 'No hay proyectos que coincidan con la búsqueda' : 'No hay proyectos disponibles'}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            {isAdmin && tabValue !== 2 ? 'Crea tu primer proyecto para comenzar' :
+            {isAdmin && !searchTerm ? 'Crea tu primer proyecto para comenzar' :
+             searchTerm ? 'Intenta con otros términos de búsqueda' :
              'Espera a que un administrador asigne proyectos'}
           </Typography>
-          {isAdmin && tabValue !== 2 && (
+          {isAdmin && !searchTerm && (
             <CustomButton
               icon="add"
-              onClick={handleOpenDialog}
+              onClick={() => navigate('/proyectos/nuevo')}
             >
               Crear Primer Proyecto
             </CustomButton>
           )}
+          {searchTerm && (
+            <Button
+              variant="outlined"
+              onClick={() => setSearchTerm('')}
+              sx={{ mt: 2, borderRadius: 2 }}
+            >
+              Limpiar búsqueda
+            </Button>
+          )}
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {filteredProyectos?.map((proyecto) => (
+          {proyectosFiltrados?.map((proyecto) => (
             <Grid item xs={12} sm={6} md={4} key={proyecto.id}>
               <Card 
                 sx={{ 
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  opacity: proyecto.is_deleted ? 0.7 : 1,
                   border: proyecto.is_deleted ? '2px dashed #e6b0aa' : 'none',
+                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 12px 24px rgba(0,0,0,0.1)',
+                  }
                 }}
               >
                 {/* Logo del proyecto */}
                 {proyecto.logo ? (
                   <CardMedia
                     component="img"
-                    height="140"
+                    height="160"
                     image={proyecto.logo}
                     alt={proyecto.nombre}
-                    sx={{ objectFit: 'contain', p: 2, bgcolor: '#f8f9fa' }}
+                    sx={{ 
+                      objectFit: 'contain', 
+                      p: 2, 
+                      bgcolor: '#f8f9fa',
+                      borderBottom: '1px solid rgba(0,0,0,0.05)'
+                    }}
                   />
                 ) : (
                   <Box
                     sx={{
-                      height: 140,
+                      height: 160,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       background: 'linear-gradient(135deg, #aae6d9, #e6b0aa)',
+                      borderBottom: '1px solid rgba(0,0,0,0.05)'
                     }}
                   >
                     <AiOutlineProject size={64} color="#ffffff" />
                   </Box>
                 )}
                 
-                <CardContent sx={{ flexGrow: 1 }}>
+                <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Typography variant="h6" fontWeight={600} noWrap sx={{ maxWidth: '70%' }}>
+                    <Typography variant="h6" fontWeight={600} sx={{ 
+                      maxWidth: '70%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                    }}>
                       {proyecto.nombre}
                     </Typography>
-                    <Box>
-                      {proyecto.is_deleted ? (
-                        <Chip
-                          label="Eliminado"
-                          size="small"
-                          sx={{
-                            bgcolor: 'rgba(230, 176, 170, 0.2)',
-                            color: '#b27a75',
-                            fontWeight: 500,
-                          }}
-                        />
-                      ) : (
-                        <Chip
-                          label={proyecto.activo ? 'Activo' : 'Inactivo'}
-                          size="small"
-                          color={proyecto.activo ? 'success' : 'default'}
-                          sx={{ 
-                            bgcolor: proyecto.activo ? 'rgba(129, 199, 132, 0.2)' : 'rgba(161, 161, 161, 0.2)',
-                            color: proyecto.activo ? '#2e7d32' : '#616161',
-                          }}
-                        />
-                      )}
-                    </Box>
+                    <Chip
+                      label={proyecto.activo ? 'Activo' : 'Inactivo'}
+                      size="small"
+                      color={proyecto.activo ? 'success' : 'default'}
+                      sx={{ 
+                        bgcolor: proyecto.activo ? 'rgba(129, 199, 132, 0.2)' : 'rgba(161, 161, 161, 0.2)',
+                        color: proyecto.activo ? '#2e7d32' : '#616161',
+                        fontWeight: 500,
+                      }}
+                    />
                   </Box>
                   
                   <Typography 
@@ -509,7 +514,20 @@ const ListaProyectos = () => {
                     {proyecto.descripcion || 'Sin descripción'}
                   </Typography>
                   
-                  {/* Estadísticas rápidas */}
+                  {/* Información del padrón */}
+                  <Box sx={{ mb: 2, p: 1.5, bgcolor: 'rgba(170, 230, 217, 0.05)', borderRadius: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                      <AiOutlineTeam size={14} color="#7ab3a5" />
+                      <Typography variant="caption" fontWeight={500} color="#7ab3a5">
+                        Padrón asociado:
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
+                      {proyecto.padron_info?.nombre_tabla || proyecto.tabla_padron?.substring(0, 8) + '...' || 'Sin padrón'}
+                    </Typography>
+                  </Box>
+                  
+                  {/* Estadísticas */}
                   <Grid container spacing={1} sx={{ mb: 2 }}>
                     <Grid item xs={6}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -520,19 +538,11 @@ const ListaProyectos = () => {
                       </Box>
                     </Grid>
                     <Grid item xs={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AiOutlineTeam size={14} color="#a1a1a1" />
-                        <Typography variant="caption" color="text.secondary">
-                          {proyecto.nombre_padron ? proyecto.nombre_padron.split('_').pop() : 'Sin padrón'}
-                        </Typography>
-                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Creado: {new Date(proyecto.fecha_creacion).toLocaleDateString('es-MX')}
+                      </Typography>
                     </Grid>
                   </Grid>
-                  
-                  {/* Fecha de creación */}
-                  <Typography variant="caption" color="text.secondary">
-                    Creado: {new Date(proyecto.fecha_creacion).toLocaleDateString('es-MX')}
-                  </Typography>
                 </CardContent>
                 
                 <CardActions sx={{ p: 2, pt: 0 }}>
@@ -542,56 +552,30 @@ const ListaProyectos = () => {
                     variant="outlined"
                     onClick={() => navigate(`/proyectos/${proyecto.id}`)}
                     sx={{ flexGrow: 1 }}
-                    disabled={proyecto.is_deleted}
                   >
-                    {proyecto.is_deleted ? 'Ver Detalles' : 'Abrir'}
+                    Abrir Proyecto
                   </CustomButton>
                   
                   {isAdmin && (
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      {proyecto.is_deleted ? (
-                        <>
-                          <Tooltip title="Restaurar">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleRestoreProject(proyecto.id)}
-                              sx={{ color: 'primary.main' }}
-                            >
-                              <AiOutlineRest />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Eliminar permanentemente">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteClick(proyecto, true)}
-                              sx={{ color: 'error.main' }}
-                            >
-                              <BiTrash />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      ) : (
-                        <>
-                          <Tooltip title="Editar">
-                            <IconButton
-                              size="small"
-                              onClick={() => navigate(`/proyectos/editar/${proyecto.id}`)}
-                              sx={{ color: 'primary.main' }}
-                            >
-                              <AiOutlineEdit />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Eliminar">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDeleteClick(proyecto, false)}
-                              sx={{ color: 'secondary.main' }}
-                            >
-                              <AiOutlineDelete />
-                            </IconButton>
-                          </Tooltip>
-                        </>
-                      )}
+                      <Tooltip title="Editar">
+                        <IconButton
+                          size="small"
+                          onClick={() => navigate(`/proyectos/editar/${proyecto.id}`)}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          <AiOutlineEdit />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Eliminar">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDeleteClick(proyecto, false)}
+                          sx={{ color: 'secondary.main' }}
+                        >
+                          <AiOutlineDelete />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   )}
                 </CardActions>
@@ -600,119 +584,6 @@ const ListaProyectos = () => {
           ))}
         </Grid>
       )}
-      
-      {/* Diálogo para crear proyecto */}
-      <Dialog 
-        open={openDialog} 
-        onClose={handleCloseDialog}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle sx={{ 
-          background: 'linear-gradient(135deg, #aae6d9, #e6b0aa)',
-          color: '#ffffff',
-          fontWeight: 600,
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <AiOutlinePlus />
-            Nuevo Proyecto
-          </Box>
-        </DialogTitle>
-        <form onSubmit={handleSubmit}>
-          <DialogContent sx={{ pt: 3 }}>
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Nombre del proyecto"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({...formData, nombre: e.target.value})}
-                  required
-                  helperText="Nombre único para identificar el proyecto"
-                  sx={{ mb: 2 }}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Descripción"
-                  value={formData.descripcion}
-                  onChange={(e) => setFormData({...formData, descripcion: e.target.value})}
-                  multiline
-                  rows={3}
-                  helperText="Describe el propósito de este proyecto"
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <FormControl fullWidth required>
-                  <InputLabel>Padrón asociado</InputLabel>
-                  <Select
-                    value={formData.tabla_padron}
-                    label="Padrón asociado"
-                    onChange={(e) => setFormData({...formData, tabla_padron: e.target.value})}
-                  >
-                    <MenuItem value="">
-                      <em>Seleccionar padrón</em>
-                    </MenuItem>
-                    {padrones?.map((padron) => (
-                      <MenuItem key={padron.uuid} value={padron.uuid}>
-                        {padron.nombre_tabla} 
-                        {padron.descripcion && ` - ${padron.descripcion.substring(0, 30)}...`}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Selecciona la tabla de padrón que usará este proyecto
-                  </Typography>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Logo del proyecto (opcional)
-                </Typography>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  fullWidth
-                  sx={{ borderRadius: 2 }}
-                >
-                  {formData.logo?.name || 'Seleccionar imagen'}
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={(e) => {
-                      if (e.target.files[0]) {
-                        setFormData({...formData, logo: e.target.files[0]});
-                      }
-                    }}
-                  />
-                </Button>
-                {formData.logo && (
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    Archivo seleccionado: {formData.logo.name}
-                  </Typography>
-                )}
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions sx={{ p: 3, pt: 0 }}>
-            <Button onClick={handleCloseDialog} color="inherit">
-              Cancelar
-            </Button>
-            <CustomButton
-              type="submit"
-              icon="confirm"
-              isLoading={createMutation.isPending}
-            >
-              Crear Proyecto
-            </CustomButton>
-          </DialogActions>
-        </form>
-      </Dialog>
       
       {/* Diálogo de confirmación para eliminar */}
       <Dialog 
@@ -737,7 +608,7 @@ const ListaProyectos = () => {
           </Typography>
           {!proyectoToDelete?.permanente && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              El proyecto se marcará como eliminado pero podrá restaurarse más tarde.
+              El proyecto se marcará como eliminado (soft delete).
             </Typography>
           )}
         </DialogContent>

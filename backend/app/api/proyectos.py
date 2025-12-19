@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import List, Optional, Dict  # <-- Agrega Dict aquí
+from typing import List, Optional, Dict 
 import os
 from pathlib import Path
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin
-from app.models import Usuario, Proyecto, IdentificadorPadrones, Plantilla  # <-- Agrega Plantilla
+from app.models import Usuario, Proyecto, IdentificadorPadrones, Plantilla 
 from app.schemas import (
     ProyectoCreate, ProyectoUpdate, ProyectoResponse,
     SuccessResponse, ErrorResponse
@@ -25,9 +25,10 @@ async def obtener_proyecto(
     current_user: Usuario = Depends(get_current_user)
 ):
     """
-    Obtiene un proyecto específico por ID
+    Obtiene un proyecto específico por ID - VERSIÓN CORREGIDA
     """
     try:
+        # 1. Construir query base
         query = db.query(Proyecto).filter(Proyecto.id == proyecto_id)
         
         if not incluir_eliminado:
@@ -41,7 +42,7 @@ async def obtener_proyecto(
                 detail="Proyecto no encontrado"
             )
         
-        # Verificar permisos
+        # 2. Verificar permisos de usuario
         if current_user.rol not in ["admin", "superadmin"]:
             if not current_user.proyecto_permitido:
                 raise HTTPException(
@@ -60,47 +61,74 @@ async def obtener_proyecto(
                     detail="No tiene acceso a este proyecto"
                 )
         
-        # Obtener estadísticas adicionales
+        # 3. Obtener estadísticas adicionales
         num_plantillas = db.query(Plantilla).filter(
             Plantilla.proyecto_id == proyecto.id,
             Plantilla.is_deleted == False
         ).count()
         
-        # Crear diccionario con los datos
+        # 4. Construir respuesta del proyecto - ¡CORRECCIÓN AQUÍ!
         proyecto_dict = {
             "id": proyecto.id,
             "nombre": proyecto.nombre,
             "descripcion": proyecto.descripcion,
-            "tabla_padron": proyecto.tabla_padron,
+            "tabla_padron": proyecto.tabla_padron,  # Este es el UUID
             "logo": proyecto.logo,
             "activo": proyecto.activo,
             "fecha_creacion": proyecto.fecha_creacion,
-            "config_json": proyecto.config_json,
+            "config_json": proyecto.config_json or {},
             "is_deleted": proyecto.is_deleted,
-            "num_plantillas": num_plantillas
+            "num_plantillas": num_plantillas,
+            "padron_info": None  # Inicializar como None
         }
         
-        # Obtener información del padrón
+        # 5. Obtener información REAL del padrón usando el UUID
+        # ¡IMPORTANTE! Esto es lo que estaba fallando
         if proyecto.tabla_padron:
-            padron = db.query(IdentificadorPadrones).filter(
-                IdentificadorPadrones.uuid_padron == proyecto.tabla_padron
-            ).first()
-            if padron:
+            try:
+                # Consultar la tabla identificador_padrones usando el UUID
+                padron = db.query(IdentificadorPadrones).filter(
+                    IdentificadorPadrones.uuid_padron == proyecto.tabla_padron
+                ).first()
+                
+                if padron:
+                    # ¡CORRECTO! La columna se llama 'nombre_tabla', no 'nombre'
+                    proyecto_dict["padron_info"] = {
+                        "nombre_tabla": padron.nombre_tabla,  # ← ¡ESTA ES LA CLAVE!
+                        "descripcion": padron.descripcion,
+                        "activo": padron.activo,
+                        "uuid": padron.uuid_padron
+                    }
+                    print(f"DEBUG: Padrón encontrado: {padron.nombre_tabla}")
+                else:
+                    print(f"DEBUG: No se encontró padrón con UUID: {proyecto.tabla_padron}")
+                    
+            except Exception as e:
+                print(f"DEBUG: Error consultando padrón: {str(e)}")
+                # No fallar si hay error con el padrón
                 proyecto_dict["padron_info"] = {
-                    "nombre_tabla": padron.nombre_tabla,
-                    "descripcion": padron.descripcion,
-                    "activo": padron.activo
+                    "nombre_tabla": f"UUID: {proyecto.tabla_padron[:8]}...",
+                    "descripcion": "Error cargando información",
+                    "activo": False,
+                    "uuid": proyecto.tabla_padron
                 }
         
+        # 6. Devolver respuesta
+        print(f"DEBUG: Proyecto {proyecto_id} cargado exitosamente")
         return proyecto_dict
         
     except HTTPException:
+        # Re-lanzar excepciones HTTP
         raise
     except Exception as e:
-        print(f"Error obteniendo proyecto: {str(e)}")  # Para debug
+        # Log detallado del error
+        print(f"ERROR CRÍTICO en obtener_proyecto: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error obteniendo proyecto: {str(e)}"
+            detail=f"Error interno obteniendo proyecto: {str(e)[:100]}"
         )
 
 @router.post("/", response_model=ProyectoResponse)
@@ -130,7 +158,7 @@ async def crear_proyecto(
         padron = db.query(IdentificadorPadrones).filter(
             IdentificadorPadrones.uuid_padron == proyecto_data.tabla_padron
         ).first()
-        
+
         if not padron:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -140,28 +168,37 @@ async def crear_proyecto(
         # Guardar logo si se proporciona
         logo_path = None
         if logo and logo.filename:
-            # Validar que sea imagen
-            allowed_extensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg']
-            ext = Path(logo.filename).suffix.lower()
-            if ext not in allowed_extensions:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Formato de imagen no permitido. Use: {', '.join(allowed_extensions)}"
-                )
+            import os
+            from pathlib import Path
+            import uuid
+
+            # Directorio para logos
+            logos_dir = Path("uploads/logos")
+            logos_dir.mkdir(parents=True, exist_ok=True)
             
-            logo_path = guardar_archivo(logo, "logos")
+            # Generar nombre único
+            ext = Path(logo.filename).suffix.lower()
+            logo_name = f"proyecto_{uuid.uuid4().hex[:8]}{ext}"
+            logo_path = str(logos_dir / logo_name)
+            
+            # Guardar archivo
+            with open(logo_path, "wb") as buffer:
+                content = await logo.read()
+                buffer.write(content)
+            
+            print(f"DEBUG: Logo guardado localmente en {logo_path}")
         
         # Crear proyecto
         proyecto = Proyecto(
             nombre=proyecto_data.nombre,
             descripcion=proyecto_data.descripcion,
-            tabla_padron=proyecto_data.tabla_padron,
+            tabla_padron=proyecto_data.tabla_padron,  # ← UUID del padrón
             logo=logo_path,
             activo=True,
             config_json={
-                "fecha_creacion": "auto",
                 "creado_por": current_user.id,
-                "columnas_padron_disponibles": []
+                "fecha_creacion": "auto",
+                "padron_nombre": padron.nombre_tabla  # Guardar nombre para referencia
             }
         )
         
@@ -374,53 +411,6 @@ async def eliminar_proyecto(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error eliminando proyecto: {str(e)}"
-        )
-
-@router.post("/{proyecto_id}/restaurar")
-async def restaurar_proyecto(
-    proyecto_id: int,
-    db: Session = Depends(get_db),
-    current_user: Usuario = Depends(require_admin)
-):
-    """
-    Restaura un proyecto eliminado (soft delete)
-    """
-    try:
-        proyecto = db.query(Proyecto).filter(
-            Proyecto.id == proyecto_id,
-            Proyecto.is_deleted == True
-        ).first()
-        
-        if not proyecto:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Proyecto no encontrado o no está eliminado"
-            )
-        
-        # Restaurar
-        proyecto.is_deleted = False
-        proyecto.activo = True
-        
-        db.commit()
-        
-        # Registrar en bitácora
-        log_auditoria(
-            db=db,
-            usuario_id=current_user.id,
-            accion="restaurar",
-            modulo="proyectos",
-            detalles={"proyecto_id": proyecto_id}
-        )
-        
-        return SuccessResponse(message="Proyecto restaurado exitosamente")
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error restaurando proyecto: {str(e)}"
         )
 
 @router.get("/", response_model=List[ProyectoResponse])
