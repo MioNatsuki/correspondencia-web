@@ -96,7 +96,7 @@ async def obtener_proyecto(
                 if padron:
                     # ¡CORRECTO! La columna se llama 'nombre_tabla', no 'nombre'
                     proyecto_dict["padron_info"] = {
-                        "nombre_tabla": padron.nombre_tabla,  # ← ¡ESTA ES LA CLAVE!
+                        "nombre_tabla": padron.nombre_tabla,
                         "descripcion": padron.descripcion,
                         "activo": padron.activo,
                         "uuid": padron.uuid_padron

@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin
-from app.models import Usuario, Plantilla, Proyecto, CampoPlantilla
+from app.models import Usuario, Plantilla, Proyecto, CampoPlantilla, IdentificadorPadrones
 from app.schemas import (
     PlantillaCreate, PlantillaUpdate, PlantillaResponse,
     Campo, CampoTexto, CampoDinamico, CampoCompuesto, CampoTabla,
@@ -480,3 +480,196 @@ async def preview_plantilla(
         raise
     except Exception as e:
         raise HTTPException(500, f"Error generando preview: {str(e)}")
+
+@router.post("/{plantilla_id}/upload-pdf")
+async def upload_pdf_plantilla(
+    plantilla_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin)
+):
+    """Sube o reemplaza el PDF base de una plantilla"""
+    try:
+        plantilla = db.query(Plantilla).filter(
+            Plantilla.id == plantilla_id,
+            Plantilla.is_deleted == False
+        ).first()
+        
+        if not plantilla:
+            raise HTTPException(404, "Plantilla no encontrada")
+        
+        # Validar PDF
+        es_valido, mensaje = validar_archivo_pdf(file)
+        if not es_valido:
+            raise HTTPException(400, mensaje)
+        
+        # Eliminar PDF anterior si existe
+        if plantilla.pdf_base and os.path.exists(plantilla.pdf_base):
+            eliminar_archivo(plantilla.pdf_base)
+        
+        # Guardar nuevo PDF
+        pdf_path = guardar_archivo(file, "pdfs")
+        
+        # Actualizar plantilla
+        plantilla.pdf_base = pdf_path
+        
+        # Obtener metadatos del PDF
+        metadata = PDFConverter.obtener_metadatos_pdf(pdf_path)
+        plantilla.config_json = {
+            **plantilla.config_json,
+            "paginas": metadata.get("paginas", 1),
+            "dimensiones": {
+                "ancho_mm": metadata.get("ancho_mm"),
+                "alto_mm": metadata.get("alto_mm")
+            },
+            "tamano_pagina": "personalizado"
+        }
+        
+        db.commit()
+        
+        # Generar preview
+        preview_path, error = PDFConverter.pdf_a_imagen(pdf_path, 1, 0.5)
+        preview_url = None
+        if not error:
+            preview_filename = os.path.basename(preview_path)
+            preview_url = f"/uploads/previews/{preview_filename}"
+        
+        return {
+            "success": True,
+            "message": "PDF actualizado exitosamente",
+            "pdf_path": pdf_path,
+            "preview_url": preview_url,
+            "metadata": metadata
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Error actualizando PDF: {str(e)}")
+
+@router.get("/{plantilla_id}/columnas-disponibles")
+async def obtener_columnas_disponibles(
+    plantilla_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtiene las columnas disponibles del padrón para insertar campos"""
+    try:
+        plantilla = db.query(Plantilla).filter(
+            Plantilla.id == plantilla_id,
+            Plantilla.is_deleted == False
+        ).first()
+        
+        if not plantilla:
+            raise HTTPException(404, "Plantilla no encontrada")
+        
+        # Obtener proyecto
+        proyecto = db.query(Proyecto).filter(
+            Proyecto.id == plantilla.proyecto_id,
+            Proyecto.is_deleted == False
+        ).first()
+        
+        if not proyecto:
+            raise HTTPException(404, "Proyecto no encontrado")
+        
+        if not proyecto.tabla_padron:
+            return {"columnas": [], "mensaje": "El proyecto no tiene padrón asignado"}
+        
+        # Obtener el nombre de la tabla del padrón
+        padron = db.query(IdentificadorPadrones).filter(
+            IdentificadorPadrones.uuid_padron == proyecto.tabla_padron
+        ).first()
+        
+        if not padron:
+            return {"columnas": [], "mensaje": "Padrón no encontrado"}
+        
+        # Obtener columnas de la tabla
+        from sqlalchemy import text
+        query = text("""
+            SELECT 
+                column_name as nombre,
+                data_type as tipo,
+                is_nullable as nullable
+            FROM information_schema.columns 
+            WHERE table_schema = 'public'
+            AND table_name = :nombre_tabla
+            ORDER BY ordinal_position
+        """)
+        
+        result = db.execute(query, {"nombre_tabla": padron.nombre_tabla})
+        columnas = []
+        
+        for row in result:
+            columnas.append({
+                "nombre": row.nombre,
+                "tipo": row.tipo,
+                "nullable": row.nullable == 'YES',
+                "etiqueta": row.nombre.replace('_', ' ').title()
+            })
+        
+        return {
+            "columnas": columnas,
+            "total": len(columnas),
+            "nombre_tabla": padron.nombre_tabla,
+            "uuid_padron": proyecto.tabla_padron
+        }
+        
+    except Exception as e:
+        raise HTTPException(500, f"Error obteniendo columnas: {str(e)}")
+
+@router.post("/{plantilla_id}/datos-ejemplo")
+async def obtener_datos_ejemplo(
+    plantilla_id: int,
+    limit: int = 5,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtiene datos de ejemplo del padrón para vista previa"""
+    try:
+        plantilla = db.query(Plantilla).filter(
+            Plantilla.id == plantilla_id,
+            Plantilla.is_deleted == False
+        ).first()
+        
+        if not plantilla:
+            raise HTTPException(404, "Plantilla no encontrada")
+        
+        # Obtener proyecto
+        proyecto = db.query(Proyecto).filter(
+            Proyecto.id == plantilla.proyecto_id,
+            Proyecto.is_deleted == False
+        ).first()
+        
+        if not proyecto:
+            raise HTTPException(404, "Proyecto no encontrado")
+        
+        if not proyecto.tabla_padron:
+            return {"datos": [], "mensaje": "El proyecto no tiene padrón asignado"}
+        
+        # Obtener el nombre de la tabla del padrón
+        padron = db.query(IdentificadorPadrones).filter(
+            IdentificadorPadrones.uuid_padron == proyecto.tabla_padron
+        ).first()
+        
+        if not padron:
+            return {"datos": [], "mensaje": "Padrón no encontrado"}
+        
+        # Obtener algunos registros de ejemplo
+        from sqlalchemy import text
+        query = text(f"SELECT * FROM {padron.nombre_tabla} LIMIT :limit")
+        
+        result = db.execute(query, {"limit": limit})
+        datos = []
+        
+        for row in result:
+            datos.append(dict(row._mapping))
+        
+        return {
+            "datos": datos,
+            "total": len(datos),
+            "nombre_tabla": padron.nombre_tabla
+        }
+        
+    except Exception as e:
+        raise HTTPException(500, f"Error obteniendo datos de ejemplo: {str(e)}")
