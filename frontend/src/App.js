@@ -19,8 +19,14 @@ import EditarProyecto from './pages/proyectos/EditarProyecto';
 import ListaPlantillas from './pages/plantillas/ListaPlantillas';
 import PlantillasProyecto from './pages/plantillas/PlantillasProyecto';
 
+// IMPORTAR EL EDITOR DE PLANTILLAS - CORREGIR ESTA LÍNEA
+import EditorPlantilla from './pages/plantillas/EditorPlantilla';
+
 // Loading component
 import LoadingSpinner from './components/ui/LoadingSpinner';
+
+// Importar Box de MUI
+import { Box } from '@mui/material'; // ← AGREGAR ESTE IMPORT
 
 // Crear cliente de React Query
 const queryClient = new QueryClient({
@@ -55,13 +61,6 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   
   return children;
 };
-
-// Necesitamos definir Box aquí
-const Box = ({ children, sx, ...props }) => (
-  <div style={{ display: 'flex', ...sx }} {...props}>
-    {children}
-  </div>
-);
 
 function AppContent() {
   return (
@@ -116,34 +115,23 @@ function AppContent() {
         </ProtectedRoute>
       } />
 
-      <Route path="/plantillas/nueva" element={
+      {/* EDITOR DE PLANTILLAS - CORREGIDO */}
+      <Route path="/plantillas/:plantillaId/editor" element={
         <ProtectedRoute requireAdmin>
           <MainLayout>
-            {/* Por implementar */}
-            <div>Editor de Plantillas - Por implementar</div>
+            <EditorPlantilla /> {/* ← AQUÍ USAS EL COMPONENTE REAL */}
           </MainLayout>
         </ProtectedRoute>
       } />
 
-      <Route path="/plantillas/:id" element={
+      {/* SI NECESITAS TAMBIÉN ESTA RUTA */}
+      <Route path="/proyectos/:id/plantillas" element={
         <ProtectedRoute>
           <MainLayout>
-            {/* Por implementar */}
-            <div>Detalle de Plantilla - Por implementar</div>
+            <PlantillasProyecto />
           </MainLayout>
         </ProtectedRoute>
       } />
-
-      <Route path="/plantillas/editar/:id" element={
-        <ProtectedRoute requireAdmin>
-          <MainLayout>
-            {/* Por implementar */}
-            <div>Editor de Plantillas - Por implementar</div>
-          </MainLayout>
-        </ProtectedRoute>
-      } />
-
-      <Route path="/proyectos/:id/plantillas" element={<PlantillasProyecto />} />
       
       {/* Ruta por defecto */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

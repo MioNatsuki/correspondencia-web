@@ -1,6 +1,6 @@
 // frontend/src/components/editor/TemplateCanvas.js
 import React, { useEffect, useRef, useState } from 'react';
-import { fabric } from 'fabric';
+import { Canvas, Textbox, FabricImage } from 'fabric';
 import { Box, Paper, Typography, Alert, CircularProgress } from '@mui/material';
 import { PAGE_SIZES } from '../../utils/constants';
 
@@ -36,8 +36,8 @@ const TemplateCanvas = ({
     const dimensions = getDimensions();
     
     try {
-      // Crear canvas de Fabric.js
-      const canvas = new fabric.Canvas(canvasRef.current, {
+      // Crear canvas de Fabric.js v6
+      const canvas = new Canvas(canvasRef.current, {
         width: dimensions.width,
         height: dimensions.height,
         backgroundColor: '#ffffff',
@@ -102,8 +102,10 @@ const TemplateCanvas = ({
       setError(null);
       
       try {
-        // Usar una imagen como placeholder (en producción, convertir PDF a imagen)
-        fabric.Image.fromURL(pdfUrl, (img) => {
+        // Usar FabricImage.fromURL para Fabric.js v6
+        FabricImage.fromURL(pdfUrl, {
+          crossOrigin: 'anonymous'
+        }).then((img) => {
           if (!fabricCanvasRef.current) return;
           
           // Escalar imagen para que quepa en el canvas
@@ -130,8 +132,10 @@ const TemplateCanvas = ({
           
           canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
           setIsLoading(false);
-        }, {
-          crossOrigin: 'anonymous'
+        }).catch(err => {
+          console.error('Error cargando imagen:', err);
+          setError('No se pudo cargar el PDF como fondo');
+          setIsLoading(false);
         });
       } catch (err) {
         console.error('Error cargando PDF:', err);
@@ -242,7 +246,7 @@ TemplateCanvas.addTextField = (canvas, options = {}) => {
   
   const mergedOptions = { ...defaultOptions, ...options };
   
-  const textbox = new fabric.Textbox(mergedOptions.text, {
+  const textbox = new Textbox(mergedOptions.text, {
     left: mergedOptions.left,
     top: mergedOptions.top,
     width: mergedOptions.width,
@@ -290,7 +294,7 @@ TemplateCanvas.addDynamicField = (canvas, fieldName, options = {}) => {
   
   // Crear un campo dinámico (texto con marcador especial)
   const dynamicText = `<<${fieldName}>>`;
-  const textbox = new fabric.Textbox(dynamicText, {
+  const textbox = new Textbox(dynamicText, {
     left: mergedOptions.left,
     top: mergedOptions.top,
     width: mergedOptions.width,
@@ -342,7 +346,7 @@ TemplateCanvas.getCanvasState = (canvas) => {
       name: obj.name
     })),
     backgroundImage: canvas.backgroundImage ? {
-      src: canvas.backgroundImage._element.src,
+      src: canvas.backgroundImage._element?.src || canvas.backgroundImage.getSrc(),
       scaleX: canvas.backgroundImage.scaleX,
       scaleY: canvas.backgroundImage.scaleY,
       left: canvas.backgroundImage.left,
@@ -361,7 +365,9 @@ TemplateCanvas.loadCanvasState = (canvas, state) => {
   
   // Cargar fondo si existe
   if (state.backgroundImage) {
-    fabric.Image.fromURL(state.backgroundImage.src, (img) => {
+    FabricImage.fromURL(state.backgroundImage.src, {
+      crossOrigin: 'anonymous'
+    }).then((img) => {
       img.set({
         scaleX: state.backgroundImage.scaleX,
         scaleY: state.backgroundImage.scaleY,
@@ -379,7 +385,7 @@ TemplateCanvas.loadCanvasState = (canvas, state) => {
     let fabricObj;
     
     if (objData.type === 'textbox') {
-      fabricObj = new fabric.Textbox(objData.text || '', {
+      fabricObj = new Textbox(objData.text || '', {
         left: objData.left,
         top: objData.top,
         width: objData.width,

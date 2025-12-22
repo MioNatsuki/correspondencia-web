@@ -1,360 +1,422 @@
-// frontend/src/pages/plantillas/EditorPlantilla.js
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+// frontend/src/components/plantillas/EditorPlantilla.js - NUEVO (en components/plantillas/)
+import React, { useState, useCallback, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Container,
-  Grid,
-  Paper,
-  Typography,
   Box,
+  Container,
+  Paper,
+  Grid,
+  Typography,
   Button,
   Alert,
+  CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
   Snackbar,
-  Breadcrumbs,
-  Link,
   IconButton,
-  Drawer,
-  Divider
+  Tooltip,
+  Badge
 } from '@mui/material';
-import { useParams, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../../context/AuthContext';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { plantillasAPI } from '../../api/plantillas';
-import { proyectosAPI } from '../../api/proyectos';
-
-// Componentes del editor
-import TemplateCanvas from '../../components/editor/TemplateCanvas';
-import EditorToolbar from '../../components/editor/EditorToolbar';
-import PropertiesPanel from '../../components/editor/PropertiesPanel';
-import FieldsPanel from '../../components/editor/FieldsPanel';
-
-// Iconos
 import {
+  AiOutlineEye,
+  AiOutlineEdit,
+  AiOutlineSave,
   AiOutlineArrowLeft,
-  AiOutlineClose
+  AiOutlineArrowRight,
+  AiOutlineClose,
+  AiOutlineHome
 } from 'react-icons/ai';
+import { useQuery, useMutation } from '@tanstack/react-query';
+
+// Usar tus componentes existentes
+import EditorToolbar from '../../components/editor/EditorToolbar'
+import FieldsPanel from '../../components/editor/FieldsPanel';
+import PropertiesPanel from '../../components/editor/PropertiesPanel';
+import TemplateCanvas from '../../components/editor/TemplateCanvas';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
+
+import { plantillasAPI } from '../../api/plantillas';
+import { UPLOADS_BASE_URL } from '../../utils/constants';
 
 const EditorPlantilla = () => {
-  const { id: plantillaId } = useParams();
+  const { plantillaId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation();
-  const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
-
-  // Estados principales
-  const [pageSize, setPageSize] = useState('OFICIO_MEXICO');
-  const [pdfPreview, setPdfPreview] = useState(null);
-  const [canvasInstance, setCanvasInstance] = useState(null);
+  
+  // Estados
+  const [canvas, setCanvas] = useState(null);
   const [selectedObjects, setSelectedObjects] = useState([]);
-  const [availableFields, setAvailableFields] = useState([]);
-  const [showPreview, setShowPreview] = useState(false);
-  const [previewRecordIndex, setPreviewRecordIndex] = useState(0);
-  const [previewRecords, setPreviewRecords] = useState([]);
+  const [mode, setMode] = useState('edit'); // 'edit' o 'preview'
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [setIsSaving] = useState(false);
-
-  const fileInputRef = useRef(null);
-
-  const isNewPlantilla = plantillaId === 'nueva';
-
-  // Obtener proyecto (necesario para uuid_padron)
-  const proyectoId = new URLSearchParams(location.search).get('proyecto');
-  const { data: proyecto, isLoading: loadingProyecto } = useQuery({
-    queryKey: ['proyecto-editor', proyectoId],
-    queryFn: () => proyectosAPI.getProyecto(proyectoId),
-    enabled: !!proyectoId,
-  });
-
-  // Obtener plantilla existente
-  const { data: plantilla, isLoading: loadingPlantilla } = useQuery({
+  
+  // Consultas - Usar las funciones que YA EXISTEN en plantillasAPI
+  const { 
+    data: plantilla, 
+    isLoading: loadingPlantilla, 
+    error: errorPlantilla 
+  } = useQuery({
     queryKey: ['plantilla', plantillaId],
-    queryFn: () => plantillasAPI.getPlantilla(plantillaId, { incluir_campos: true }),
-    enabled: !!plantillaId && !isNewPlantilla,
+    queryFn: () => plantillasAPI.getPlantilla(plantillaId),
+    enabled: !!plantillaId
   });
-
-  // Obtener campos disponibles del padrón
-  const { data: camposData, isLoading: loadingCampos } = useQuery({
-    queryKey: ['campos-padron', proyecto?.uuid_padron],
-    queryFn: () => plantillasAPI.getCamposDisponiblesPorPadron(proyecto.uuid_padron),
-    enabled: !!proyecto?.uuid_padron,
+  
+  const { 
+    data: camposData,
+    isLoading: loadingCampos 
+  } = useQuery({
+    queryKey: ['campos-disponibles', plantillaId],
+    queryFn: () => plantillasAPI.getCamposDisponibles(plantillaId),
+    enabled: !!plantillaId
   });
-
-  // Cargar campos cuando estén disponibles
-  useEffect(() => {
-    if (camposData?.columnas) {
-      setAvailableFields(camposData.columnas);
+  
+  const { 
+    data: previewData,
+    refetch: refetchPreview 
+  } = useQuery({
+    queryKey: ['datos-preview', plantillaId, previewIndex],
+    queryFn: () => plantillasAPI.getDatosEjemplo(plantillaId, 10),
+    enabled: !!plantillaId && mode === 'preview'
+  });
+  
+  // Mutaciones
+  const saveMutation = useMutation({
+    mutationFn: (campos) => plantillasAPI.updateCampos(plantillaId, campos),
+    onSuccess: () => {
+      showSnackbar('Campos guardados exitosamente', 'success');
+    },
+    onError: (error) => {
+      showSnackbar(`Error al guardar: ${error.message}`, 'error');
     }
-  }, [camposData]);
-
-  // Cargar configuración existente si es edición
-  useEffect(() => {
-    if (!plantilla || !canvasInstance) return;
-
-    if (plantilla.config_json?.tamano_pagina) {
-      setPageSize(plantilla.config_json.tamano_pagina);
+  });
+  
+  // Callbacks del canvas
+  const handleCanvasReady = useCallback((canvasInstance) => {
+    setCanvas(canvasInstance);
+    
+    // Si hay campos existentes, cargarlos
+    if (plantilla?.campos && plantilla.campos.length > 0) {
+      loadExistingFields(canvasInstance, plantilla.campos);
     }
-    if (plantilla.pdf_base) {
-      setPdfPreview(plantilla.pdf_base);
-    }
-    // Cargar objetos guardados (por implementar en loadCanvasState)
-    if (plantilla.campos_json?.objects) {
-      // TemplateCanvas.loadCanvasState(canvasInstance, plantilla.campos_json);
-    }
-  }, [plantilla, canvasInstance]);
-
-  // Handlers
-  const handleCanvasReady = useCallback((canvas) => {
-    setCanvasInstance(canvas);
-  }, []);
-
+  }, [plantilla]);
+  
   const handleSelectionChanged = useCallback((objects) => {
     setSelectedObjects(objects || []);
   }, []);
-
+  
+  // Funciones del editor
+  const loadExistingFields = (canvasInstance, campos) => {
+    campos.forEach((campo, index) => {
+      if (campo.tipo === 'texto') {
+        TemplateCanvas.addTextField(canvasInstance, {
+          left: campo.x,
+          top: campo.y,
+          width: campo.ancho,
+          height: campo.alto,
+          text: campo.texto_fijo || '',
+          fontSize: campo.tamano_fuente,
+          fontFamily: campo.fuente,
+          fill: campo.color,
+          textAlign: campo.alineacion,
+          name: `text_${index}`,
+          metadata: {
+            fieldType: 'text',
+            campoId: campo.id
+          }
+        });
+      } else if (campo.tipo === 'campo') {
+        TemplateCanvas.addDynamicField(canvasInstance, campo.columna_padron, {
+          left: campo.x,
+          top: campo.y,
+          width: campo.ancho,
+          height: campo.alto,
+          fontSize: campo.tamano_fuente,
+          fontFamily: campo.fuente,
+          fill: campo.color,
+          textAlign: campo.alineacion,
+          name: `field_${index}`,
+          metadata: {
+            fieldType: 'dynamic',
+            campoId: campo.id,
+            fieldName: campo.columna_padron
+          }
+        });
+      }
+    });
+  };
+  
+  const handleSave = () => {
+    if (!canvas) return;
+    
+    const estado = TemplateCanvas.getCanvasState(canvas);
+    const campos = convertirEstadoACampos(estado);
+    
+    saveMutation.mutate(campos);
+  };
+  
+  const convertirEstadoACampos = (estado) => {
+    return estado.objects.map((obj, index) => ({
+      nombre: obj.name || `campo_${index}`,
+      tipo: obj.metadata?.fieldType === 'dynamic' ? 'campo' : 'texto',
+      x: obj.left,
+      y: obj.top,
+      ancho: obj.width,
+      alto: obj.height,
+      alineacion: obj.textAlign || 'left',
+      fuente: obj.fontFamily || 'Arial',
+      tamano_fuente: obj.fontSize || 12,
+      color: obj.fill || '#000000',
+      negrita: obj.fontWeight === 'bold',
+      cursiva: obj.fontStyle === 'italic',
+      texto_fijo: obj.metadata?.fieldType === 'text' ? obj.text : null,
+      columna_padron: obj.metadata?.fieldName || null,
+      orden: index,
+      activo: true
+    }));
+  };
+  
+  // Funciones de vista previa
+  const togglePreviewMode = () => {
+    const newMode = mode === 'edit' ? 'preview' : 'edit';
+    setMode(newMode);
+    
+    if (newMode === 'preview') {
+      // Cargar datos de vista previa
+      refetchPreview();
+    }
+  };
+  
+  const updatePreview = useCallback(() => {
+    if (!canvas || !previewData?.datos || previewData.datos.length === 0) return;
+    
+    const datosRegistro = previewData.datos[previewIndex] || {};
+    
+    canvas.getObjects().forEach(obj => {
+      if (obj.metadata?.fieldType === 'dynamic' && obj.metadata?.fieldName) {
+        const fieldName = obj.metadata.fieldName;
+        const valor = datosRegistro[fieldName] || `<<${fieldName}>>`;
+        obj.set('text', valor);
+      }
+    });
+    
+    canvas.renderAll();
+  }, [canvas, previewData, previewIndex]);
+  
+  useEffect(() => {
+    if (mode === 'preview' && canvas) {
+      updatePreview();
+    }
+  }, [mode, previewIndex, previewData, canvas, updatePreview]);
+  
+  const handleNextPreview = () => {
+    if (!previewData?.datos) return;
+    setPreviewIndex((prev) => 
+      prev < previewData.datos.length - 1 ? prev + 1 : 0
+    );
+  };
+  
+  const handlePrevPreview = () => {
+    if (!previewData?.datos) return;
+    setPreviewIndex((prev) => 
+      prev > 0 ? prev - 1 : previewData.datos.length - 1
+    );
+  };
+  
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+  
+  // Funciones del toolbar
   const handleAddTextField = () => {
-    if (!canvasInstance) return;
-    TemplateCanvas.addTextField(canvasInstance);
+    if (!canvas) return;
+    TemplateCanvas.addTextField(canvas, {
+      left: 100,
+      top: 100,
+      text: 'Texto de ejemplo',
+      fontSize: 12,
+      fontFamily: 'Arial',
+      fill: '#000000'
+    });
   };
-
-  const handleAddDynamicField = (field) => {
-    if (!canvasInstance || !field?.nombre) return;
-    TemplateCanvas.addDynamicField(canvasInstance, field.nombre);
+  
+  const handleAddDynamicField = (fieldName) => {
+    if (!canvas) return;
+    TemplateCanvas.addDynamicField(canvas, fieldName, {
+      left: 100,
+      top: 150,
+      fontSize: 12,
+      fontFamily: 'Arial',
+      fill: '#2196f3'
+    });
   };
-
-  const handlePropertyChange = (property, value) => {
-    if (!canvasInstance || selectedObjects.length === 0) return;
-    const activeObject = canvasInstance.getActiveObject();
-    if (activeObject) {
-      activeObject.set(property, value);
-      canvasInstance.renderAll();
-    }
-  };
-
-  const handleSave = async () => {
-    if (!canvasInstance) return;
-    setIsSaving(true);
-
-    try {
-      const canvasState = TemplateCanvas.getCanvasState(canvasInstance);
-
-      const data = {
-        proyecto_id: proyectoId,
-        nombre: plantilla?.nombre || 'Plantilla sin título',
-        descripcion: plantilla?.descripcion || '',
-        config_json: {
-          tamano_pagina: pageSize,
-        },
-        campos_json: canvasState,
-      };
-
-      if (isNewPlantilla) {
-        await plantillasAPI.createPlantilla(data);
-      } else {
-        await plantillasAPI.updatePlantilla(plantillaId, data);
-      }
-
-      setSnackbar({ open: true, message: 'Plantilla guardada correctamente', severity: 'success' });
-      queryClient.invalidateQueries(['plantillas-proyecto', proyectoId]);
-    } catch (err) {
-      setSnackbar({ open: true, message: 'Error al guardar', severity: 'error' });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handlePreview = async () => {
-    if (!proyecto?.uuid_padron) {
-      setSnackbar({ open: true, message: 'No hay padrón asignado', severity: 'warning' });
-      return;
-    }
-
-    try {
-      const response = await plantillasAPI.obtenerDatosPreview(proyecto.uuid_padron, { limit: 10 });
-      if (response.datos?.length > 0) {
-        setPreviewRecords(response.datos);
-        setPreviewRecordIndex(0);
-        setShowPreview(true);
-      } else {
-        setSnackbar({ open: true, message: 'No hay registros en el padrón', severity: 'info' });
-      }
-    } catch (err) {
-      setSnackbar({ open: true, message: 'Error al cargar vista previa', severity: 'error' });
-    }
-  };
-
-  const handleNextRecord = () => {
-    if (previewRecordIndex < previewRecords.length - 1) {
-      setPreviewRecordIndex(prev => prev + 1);
-    }
-  };
-
-  const handlePrevRecord = () => {
-    if (previewRecordIndex > 0) {
-      setPreviewRecordIndex(prev => prev - 1);
-    }
-  };
-
-  // Subir PDF
-  const handlePdfUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type === 'application/pdf') {
-      const reader = new FileReader();
-      reader.onload = () => setPdfPreview(reader.result);
-      reader.readAsDataURL(file);
-    }
-  };
-
-  if (loadingProyecto || loadingPlantilla) return <LoadingSpinner />;
-
-  if (!isAdmin) {
+  
+  if (loadingPlantilla) {
     return (
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Alert severity="warning">No tienes permisos para editar plantillas</Alert>
-        <Button startIcon={<AiOutlineArrowLeft />} onClick={() => navigate(-1)} sx={{ mt: 2 }}>
-          Volver
-        </Button>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  
+  if (errorPlantilla) {
+    return (
+      <Container sx={{ mt: 4 }}>
+        <Alert severity="error">
+          Error cargando plantilla: {errorPlantilla.message}
+          <Button sx={{ ml: 2 }} onClick={() => navigate('/plantillas')}>
+            Volver
+          </Button>
+        </Alert>
       </Container>
     );
   }
-
+  
   return (
-    <>
-      <Container maxWidth="xl" sx={{ py: 4 }}>
-        {/* Breadcrumbs */}
-        <Breadcrumbs sx={{ mb: 3 }}>
-          <Link component={RouterLink} to="/proyectos">Proyectos</Link>
-          <Link component={RouterLink} to={`/proyectos/${proyectoId}`}>{proyecto?.nombre}</Link>
-          <Link component={RouterLink} to={`/proyectos/${proyectoId}/plantillas`}>Plantillas</Link>
-          <Typography color="text.primary">
-            {isNewPlantilla ? 'Nueva Plantilla' : plantilla?.nombre || 'Editar'}
-          </Typography>
-        </Breadcrumbs>
-
-        {/* Toolbar */}
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f5f7fa' }}>
+      {/* Header */}
+      <Paper sx={{ 
+        p: 2, 
+        borderRadius: 0, 
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <IconButton onClick={() => navigate('/plantillas')} size="small">
+            <AiOutlineHome />
+          </IconButton>
+          <Box>
+            <Typography variant="h6" fontWeight={600}>
+              {plantilla?.nombre || 'Editor de Plantilla'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {mode === 'edit' ? 'Modo Edición' : 'Modo Vista Previa'}
+              {mode === 'preview' && previewData?.datos && (
+                ` • Registro ${previewIndex + 1} de ${previewData.datos.length}`
+              )}
+            </Typography>
+          </Box>
+        </Box>
+        
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <ToggleButtonGroup
+            value={mode}
+            exclusive
+            onChange={togglePreviewMode}
+            size="small"
+          >
+            <ToggleButton value="edit">
+              <AiOutlineEdit /> Editar
+            </ToggleButton>
+            <ToggleButton value="preview">
+              <AiOutlineEye /> Vista Previa
+            </ToggleButton>
+          </ToggleButtonGroup>
+          
+          {mode === 'preview' && previewData?.datos && (
+            <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+              <IconButton size="small" onClick={handlePrevPreview}>
+                <AiOutlineArrowLeft />
+              </IconButton>
+              <Typography variant="body2" sx={{ mx: 1 }}>
+                {previewIndex + 1} / {previewData.datos.length}
+              </Typography>
+              <IconButton size="small" onClick={handleNextPreview}>
+                <AiOutlineArrowRight />
+              </IconButton>
+            </Box>
+          )}
+          
+          <Button
+            variant="contained"
+            startIcon={<AiOutlineSave />}
+            onClick={handleSave}
+            disabled={saveMutation.isLoading || mode === 'preview'}
+            sx={{ 
+              ml: 2,
+              bgcolor: '#aae6d9', 
+              '&:hover': { bgcolor: '#7ab3a5' } 
+            }}
+          >
+            {saveMutation.isLoading ? 'Guardando...' : 'Guardar'}
+          </Button>
+        </Box>
+      </Paper>
+      
+      {/* Toolbar */}
+      <Box sx={{ px: 2, py: 1 }}>
         <EditorToolbar
           onAddTextField={handleAddTextField}
           onAddDynamicField={handleAddDynamicField}
           onSave={handleSave}
-          onPreview={handlePreview}
-          availableFields={availableFields}
+          onPreview={togglePreviewMode}
+          onUndo={() => canvas?.undo && canvas.undo()}
+          onRedo={() => canvas?.redo && canvas.redo()}
+          onDelete={() => {
+            if (canvas && selectedObjects.length > 0) {
+              canvas.remove(...selectedObjects);
+              canvas.discardActiveObject();
+              canvas.renderAll();
+            }
+          }}
+          availableFields={camposData?.columnas || []}
           selectedObjects={selectedObjects}
-          readOnly={false}
+          readOnly={mode === 'preview'}
         />
-
-        {/* Layout principal */}
-        <Grid container spacing={3} sx={{ mt: 2 }}>
-          {/* Panel izquierdo: Campos del padrón */}
-          <Grid item xs={12} md={3}>
-            <Drawer
-              variant="permanent"
-              anchor="left"
-              PaperProps={{ sx: { width: 320, borderRight: '1px solid #e0e0e0', bgcolor: '#f9f9f9' } }}
-            >
-              <Box sx={{ p: 2 }}>
-                <Typography variant="h6" fontWeight={600} gutterBottom>
-                  Campos del Padrón
-                </Typography>
-                {proyecto?.nombre_padron ? (
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                    Padrón: {proyecto.nombre_padron}
-                  </Typography>
-                ) : (
-                  <Alert severity="info" sx={{ mb: 2 }}>No hay padrón asignado</Alert>
-                )}
-              </Box>
-              <Divider />
-              <FieldsPanel
-                plantillaId={plantillaId}
-                availableFields={availableFields}
-                onFieldDragStart={() => {}}
-                onFieldSelect={(field) => handleAddDynamicField(field)}
-                readOnly={false}
-              />
-            </Drawer>
-          </Grid>
-
-          {/* Centro: Canvas */}
-          <Grid item xs={12} md={6}>
-            <Paper elevation={3} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-              <TemplateCanvas
-                pdfUrl={pdfPreview}
-                pageSize={pageSize}
-                onCanvasReady={handleCanvasReady}
-                onSelectionChanged={handleSelectionChanged}
-                readOnly={false}
-              />
-            </Paper>
-          </Grid>
-
-          {/* Derecha: Propiedades */}
-          <Grid item xs={12} md={3}>
-            <Paper sx={{ height: '100%', borderRadius: 2, p: 2 }}>
-              <PropertiesPanel
-                selectedObject={selectedObjects[0] || null}
-                onPropertyChange={handlePropertyChange}
-                readOnly={false}
-              />
-            </Paper>
-          </Grid>
+      </Box>
+      
+      {/* Contenido principal */}
+      <Grid container sx={{ flex: 1, overflow: 'hidden', px: 2, pb: 2, gap: 2 }}>
+        {/* Panel izquierdo - Campos disponibles */}
+        <Grid item xs={3} sx={{ height: '100%' }}>
+          <FieldsPanel
+            plantillaId={plantillaId}
+            onFieldSelect={(field) => handleAddDynamicField(field.nombre)}
+            onFieldDragStart={(field) => handleAddDynamicField(field.nombre)}
+            selectedFields={[]}
+            readOnly={mode === 'preview'}
+          />
         </Grid>
-
-        {/* Vista previa modal */}
-        {showPreview && previewRecords.length > 0 && (
-          <Dialog open={showPreview} onClose={() => setShowPreview(false)} maxWidth="lg" fullWidth>
-            <DialogTitle>
-              Vista Previa de Resultados
-              <IconButton onClick={() => setShowPreview(false)} sx={{ position: 'absolute', right: 8, top: 8 }}>
-                <AiOutlineClose />
-              </IconButton>
-            </DialogTitle>
-            <DialogContent>
-              <Box sx={{ textAlign: 'center', my: 2 }}>
-                <Typography variant="body2">
-                  Registro {previewRecordIndex + 1} de {previewRecords.length}
-                </Typography>
-              </Box>
-              <TemplateCanvas
-                pdfUrl={pdfPreview}
-                pageSize={pageSize}
-                previewData={previewRecords[previewRecordIndex]}
-                readOnly={true}
-              />
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handlePrevRecord} disabled={previewRecordIndex === 0}>
-                Anterior
-              </Button>
-              <Button onClick={handleNextRecord} disabled={previewRecordIndex === previewRecords.length - 1}>
-                Siguiente
-              </Button>
-              <Button onClick={() => setShowPreview(false)} variant="contained">
-                Cerrar
-              </Button>
-            </DialogActions>
-          </Dialog>
-        )}
-
-        {/* Snackbar */}
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={6000}
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-        >
-          <Alert severity={snackbar.severity} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
-
-        {/* Input oculto para PDF */}
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handlePdfUpload}
-          accept=".pdf"
-          style={{ display: 'none' }}
-        />
-      </Container>
-    </>
+        
+        {/* Centro - Canvas */}
+        <Grid item xs={6} sx={{ height: '100%' }}>
+          <Paper sx={{ height: '100%', p: 2, borderRadius: 2 }}>
+            <TemplateCanvas
+              pdfUrl={plantilla?.pdf_base ? `${UPLOADS_BASE_URL}/${plantilla.pdf_base}` : null}
+              pageSize="OFICIO_MEXICO"
+              width="100%"
+              height="100%"
+              onCanvasReady={handleCanvasReady}
+              onSelectionChanged={handleSelectionChanged}
+              readOnly={mode === 'preview'}
+            />
+          </Paper>
+        </Grid>
+        
+        {/* Panel derecho - Propiedades */}
+        <Grid item xs={3} sx={{ height: '100%' }}>
+          <PropertiesPanel
+            selectedObject={selectedObjects.length === 1 ? selectedObjects[0] : null}
+            onPropertyChange={(property, value) => {
+              if (canvas && selectedObjects.length === 1) {
+                const obj = selectedObjects[0];
+                obj.set(property, value);
+                canvas.renderAll();
+              }
+            }}
+            readOnly={mode === 'preview'}
+          />
+        </Grid>
+      </Grid>
+      
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        message={snackbar.message}
+      />
+    </Box>
   );
 };
 

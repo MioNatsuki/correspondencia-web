@@ -29,10 +29,6 @@ import {
   AiOutlineAlignLeft,
   AiOutlineAlignCenter,
   AiOutlineAlignRight,
-  AiOutlineFontColors,
-  AiOutlineFontSize,
-  AiOutlineTextHeight,
-  AiOutlineField,
   AiOutlineSave,
   AiOutlineEye,
   AiOutlineUndo,
@@ -40,7 +36,6 @@ import {
   AiOutlineDelete,
   AiOutlineCopy,
   AiOutlineScissor,
-  AiOutlinePaste,
   AiOutlineOrderedList,
   AiOutlineUnorderedList,
   AiOutlineLineHeight,
@@ -50,8 +45,14 @@ import {
   AiOutlineZoomOut,
   AiOutlineFullscreen,
   AiOutlineLayout,
-  AiOutlineFont
+  AiOutlineFontSize,
+  AiOutlineFontColors
 } from 'react-icons/ai';
+import ContentPasteOutlined from '@mui/icons-material/ContentPasteOutlined';
+import FormatColorTextOutlined from '@mui/icons-material/FormatColorTextOutlined';
+import FontDownloadOutlined from '@mui/icons-material/FontDownloadOutlined';
+import TableViewOutlined from '@mui/icons-material/TableViewOutlined';
+import FormatSizeOutlined from '@mui/icons-material/FormatSizeOutlined';
 import { BiText } from 'react-icons/bi';
 import { MdOutlineFormatColorText, MdOutlineBorderColor } from 'react-icons/md';
 import { COLORS, FONT_SIZES, AVAILABLE_FONTS, TEXT_ALIGN } from '../../utils/constants';
@@ -200,7 +201,7 @@ const EditorToolbar = ({
           
           <Tooltip title="Pegar (Ctrl+V)">
             <IconButton size="small" onClick={onPaste} disabled={readOnly}>
-              <AiOutlinePaste />
+              <ContentPasteOutlined /> 
             </IconButton>
           </Tooltip>
           
@@ -248,7 +249,7 @@ const EditorToolbar = ({
                 max={99}
                 sx={{ '& .MuiBadge-badge': { fontSize: '0.6rem', height: 16 } }}
               >
-                <AiOutlineField />
+                <TableViewOutlined fontSize="small" />
               </Badge>
             </IconButton>
           </Tooltip>
@@ -260,19 +261,19 @@ const EditorToolbar = ({
             <Box sx={{ display: 'flex', gap: 0.5, mr: 1, borderRight: '1px solid rgba(0,0,0,0.1)', pr: 1 }}>
               <Tooltip title="Fuente">
                 <IconButton size="small" onClick={handleFontClick} disabled={readOnly}>
-                  <AiOutlineFont />
+                  <FontDownloadOutlined />
                 </IconButton>
               </Tooltip>
               
               <Tooltip title="Tamaño de fuente">
                 <IconButton size="small" onClick={handleSizeClick} disabled={readOnly}>
-                  <AiOutlineFontSize />
+                  <FormatSizeOutlined />
                 </IconButton>
               </Tooltip>
               
               <Tooltip title="Color del texto">
                 <IconButton size="small" onClick={handleColorClick} disabled={readOnly}>
-                  <AiOutlineFontColors />
+                  <FormatColorTextOutlined />
                 </IconButton>
               </Tooltip>
             </Box>

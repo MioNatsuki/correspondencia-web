@@ -20,15 +20,19 @@ import {
 } from '@mui/material';
 import {
   AiOutlineSearch,
-  AiOutlineField,
   AiOutlineInfoCircle,
   AiOutlineDrag,
   AiOutlineEye,
   AiOutlineFilter,
   AiOutlineSortAscending,
   AiOutlineSortDescending,
-  AiOutlineReload
+  AiOutlineReload,
+  AiOutlineClose
 } from 'react-icons/ai';
+import ContentPasteOutlined from '@mui/icons-material/ContentPasteOutlined';
+import FormatColorTextOutlined from '@mui/icons-material/FormatColorTextOutlined';
+import FontDownloadOutlined from '@mui/icons-material/FontDownloadOutlined';
+import TableViewOutlined from '@mui/icons-material/TableViewOutlined'; // buen reemplazo para "field"
 import { BiText, BiCalendar, BiHash, BiCheckbox } from 'react-icons/bi';
 import { useQuery } from '@tanstack/react-query';
 import { plantillasAPI } from '../../api/plantillas';
@@ -73,7 +77,7 @@ const FieldsPanel = ({
     } else if (tipoLower.includes('bool')) {
       return <BiCheckbox color="#9c27b0" />;
     } else {
-      return <AiOutlineField color="#757575" />;
+      return <TableViewOutlined fontSize="small" color="#757575" />;
     }
   };
   
@@ -201,7 +205,7 @@ const FieldsPanel = ({
     return (
       <Paper sx={{ p: 3, height: '100%', borderRadius: 2 }}>
         <Box sx={{ textAlign: 'center', py: 4 }}>
-          <AiOutlineField size={48} color="#e6b0aa" style={{ opacity: 0.5, marginBottom: 16 }} />
+          <TableViewOutlined fontSize="small" size={48} color="#e6b0aa" style={{ opacity: 0.5, marginBottom: 16 }} />
           <Typography variant="h6" color="text.secondary" gutterBottom>
             No hay campos disponibles
           </Typography>

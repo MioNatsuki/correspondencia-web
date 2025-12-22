@@ -688,3 +688,85 @@ async def obtener_datos_ejemplo(
         
     except Exception as e:
         raise HTTPException(500, f"Error obteniendo datos de ejemplo: {str(e)}")
+    
+@router.get("/{plantilla_id}/campos-disponibles")
+async def obtener_campos_disponibles(
+    plantilla_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtiene las columnas disponibles del padrón para una plantilla"""
+    try:
+        # Obtener plantilla
+        plantilla = db.query(Plantilla).filter(
+            Plantilla.id == plantilla_id,
+            Plantilla.is_deleted == False
+        ).first()
+        
+        if not plantilla:
+            raise HTTPException(404, "Plantilla no encontrada")
+        
+        # Obtener proyecto
+        proyecto = db.query(Proyecto).filter(
+            Proyecto.id == plantilla.proyecto_id
+        ).first()
+        
+        if not proyecto:
+            raise HTTPException(404, "Proyecto no encontrado")
+        
+        # Si no tiene padrón asignado
+        if not proyecto.tabla_padron:
+            return {
+                "columnas": [],
+                "nombre_tabla": None,
+                "mensaje": "El proyecto no tiene padrón asignado"
+            }
+        
+        # Obtener nombre de tabla del padrón
+        padron = db.query(IdentificadorPadrones).filter(
+            IdentificadorPadrones.uuid_padron == proyecto.tabla_padron
+        ).first()
+        
+        if not padron:
+            return {
+                "columnas": [],
+                "nombre_tabla": None,
+                "mensaje": "Padrón no encontrado"
+            }
+        
+        # Obtener columnas de la tabla
+        from sqlalchemy import text, inspect
+        from sqlalchemy.engine import reflection
+        
+        inspector = inspect(db.bind)
+        columnas_info = inspector.get_columns(padron.nombre_tabla)
+        
+        columnas = []
+        for col in columnas_info:
+            # Determinar tipo amigable
+            tipo = str(col['type']).lower()
+            tipo_amigable = "texto"
+            if 'int' in tipo or 'numeric' in tipo or 'decimal' in tipo:
+                tipo_amigable = "número"
+            elif 'date' in tipo or 'time' in tipo:
+                tipo_amigable = "fecha"
+            elif 'bool' in tipo:
+                tipo_amigable = "booleano"
+            
+            columnas.append({
+                "nombre": col['name'],
+                "tipo": tipo,
+                "tipo_amigable": tipo_amigable,
+                "nullable": col.get('nullable', True),
+                "etiqueta": col['name'].replace('_', ' ').title()
+            })
+        
+        return {
+            "columnas": columnas,
+            "total": len(columnas),
+            "nombre_tabla": padron.nombre_tabla,
+            "uuid_padron": proyecto.tabla_padron
+        }
+        
+    except Exception as e:
+        raise HTTPException(500, f"Error obteniendo columnas: {str(e)}")

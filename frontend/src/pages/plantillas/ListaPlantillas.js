@@ -502,7 +502,7 @@ const ListaPlantillas = () => {
                         <Tooltip title="Editar">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/plantillas/editar/${plantilla.id}`)}
+                            onClick={() => navigate(`/plantillas/${plantilla.id}/editor`)}
                             sx={{ 
                               color: 'primary.main',
                               '&:hover': { bgcolor: 'rgba(170, 230, 217, 0.1)' }
@@ -561,14 +561,14 @@ const ListaPlantillas = () => {
       >
         <MenuItem onClick={() => {
           if (selectedPlantilla) {
-            navigate(`/plantillas/editar/${selectedPlantilla.id}`);
+            navigate(`/plantillas/${selectedPlantilla.id}/editor`);
           }
           handleMenuClose();
         }}>
           <ListItemIcon>
             <AiOutlineEdit size={18} />
           </ListItemIcon>
-          <ListItemText>Editar plantilla</ListItemText>
+          <ListItemText>Editor de plantilla</ListItemText>
         </MenuItem>
         
         <MenuItem onClick={handleDuplicate}>

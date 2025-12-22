@@ -170,7 +170,8 @@ class PlantillaResponse(PlantillaBase):
     fecha_creacion: datetime
     usuario_creador_id: Optional[int] = None
     config_json: Optional[Dict[str, Any]] = None
-    
+    pdf_base: Optional[str] = None  # ← AGREGAR ESTO
+    campos: Optional[List[Campo]] = None  # ← AGREGAR ESTO   
     class Config:
         json_encoders = {
             datetime: lambda dt: dt.isoformat()
