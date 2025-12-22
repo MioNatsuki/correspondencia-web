@@ -1,51 +1,18 @@
-import api from './index';
+import axios from 'axios';
+import { API_BASE_URL } from '../utils/constants';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true,
+});
 
 export const plantillasAPI = {
-  // Obtener todas las plantillas
-  getPlantillas: async (params = {}) => {
-    const response = await api.get('/plantillas', { params });
-    return response.data;
-  },
-  
-  // Obtener una plantilla específica
-  getPlantilla: async (id, params = {}) => {
-    const response = await api.get(`/plantillas/${id}`, { params });
-    return response.data;
-  },
-  
-  // Crear nueva plantilla
-  createPlantilla: async (plantillaData) => {
-    const response = await api.post('/plantillas', plantillaData);
-    return response.data;
-  },
-  
-  // Actualizar plantilla
-  updatePlantilla: async (id, plantillaData) => {
-    const response = await api.put(`/plantillas/${id}`, plantillaData);
-    return response.data;
-  },
-  
-  // Eliminar plantilla
-  deletePlantilla: async (id) => {
-    const response = await api.delete(`/plantillas/${id}`);
-    return response.data;
-  },
-  
-  // Obtener campos de plantilla
-  getCamposPlantilla: async (id) => {
-    const response = await api.get(`/plantillas/${id}/campos`);
-    return response.data;
-  },
-  
-  // Actualizar campos de plantilla
-  updateCamposPlantilla: async (id, campos) => {
-    const response = await api.put(`/plantillas/${id}/campos`, { campos });
-    return response.data;
-  },
-  
-  // Preview de plantilla
-  previewPlantilla: async (id, datosEjemplo = {}) => {
-    const response = await api.post(`/plantillas/${id}/preview`, datosEjemplo);
-    return response.data;
-  }
+  getPlantillas: (params = {}) => api.get('/plantillas', { params }).then(res => res.data),
+  getPlantilla: (id) => api.get(`/plantillas/${id}`).then(res => res.data),
+  createPlantilla: (formData) => api.post('/plantillas', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(res => res.data),
+  updatePlantilla: (id, data) => api.put(`/plantillas/${id}`, data).then(res => res.data),
+  deletePlantilla: (id) => api.delete(`/plantillas/${id}`).then(res => res.data),
+  updateCampos: (id, campos) => api.put(`/plantillas/${id}/campos`, campos).then(res => res.data),
 };

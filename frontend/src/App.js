@@ -17,6 +17,7 @@ import ListaProyectos from './pages/proyectos/ListaProyectos';
 import DetalleProyecto from './pages/proyectos/DetalleProyecto';
 import EditarProyecto from './pages/proyectos/EditarProyecto';
 import ListaPlantillas from './pages/plantillas/ListaPlantillas';
+import PlantillasProyecto from './pages/plantillas/PlantillasProyecto';
 
 // Loading component
 import LoadingSpinner from './components/ui/LoadingSpinner';
@@ -141,6 +142,8 @@ function AppContent() {
           </MainLayout>
         </ProtectedRoute>
       } />
+
+      <Route path="/proyectos/:id/plantillas" element={<PlantillasProyecto />} />
       
       {/* Ruta por defecto */}
       <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -13,7 +13,7 @@ import {
   IconButton,
   Button,
   Alert,
-  Avatar,
+  Divider,
   Tooltip,
   Fab,
   Breadcrumbs,

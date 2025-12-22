@@ -47,6 +47,14 @@ async def listar_plantillas(
             if not proyecto:
                 raise HTTPException(404, "Proyecto no encontrado")
             
+            if current_user.rol == "lector":
+                proyectos_permitidos = current_user.proyecto_permitido or ""
+                ids_permitidos = [int(pid.strip()) for pid in proyectos_permitidos.split(",") if pid.strip().isdigit()]
+                if proyecto.id not in ids_permitidos:
+                    raise HTTPException(
+                        status_code=403,
+                        detail="No tienes permiso para acceder a este proyecto"
+                    )
             query = query.filter(Plantilla.proyecto_id == proyecto_id)
         
         if activas:
@@ -79,7 +87,14 @@ async def obtener_plantilla(
         
         if not plantilla:
             raise HTTPException(404, "Plantilla no encontrada")
-        
+        if current_user.rol == "lector":
+            proyectos_permitidos = current_user.proyecto_permitido or ""
+            ids_permitidos = [int(pid.strip()) for pid in proyectos_permitidos.split(",") if pid.strip().isdigit()]
+            if proyecto.id not in ids_permitidos:
+                raise HTTPException(
+                    status_code=403,
+                    detail="No tienes permiso para acceder a este proyecto"
+                )
         # Verificar acceso al proyecto
         proyecto = db.query(Proyecto).filter(
             Proyecto.id == plantilla.proyecto_id,
