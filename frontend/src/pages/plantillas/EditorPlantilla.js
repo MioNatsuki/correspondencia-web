@@ -9,20 +9,14 @@ import {
   Button,
   Alert,
   Snackbar,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  CircularProgress,
   Breadcrumbs,
   Link,
   IconButton,
-  Tooltip,
   Drawer,
   Divider
 } from '@mui/material';
 import { useParams, useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { plantillasAPI } from '../../api/plantillas';
@@ -37,13 +31,8 @@ import FieldsPanel from '../../components/editor/FieldsPanel';
 // Iconos
 import {
   AiOutlineArrowLeft,
-  AiOutlineSave,
-  AiOutlineEye,
-  AiOutlineUpload,
-  AiOutlineClose,
-  AiOutlineCheck
+  AiOutlineClose
 } from 'react-icons/ai';
-import { PAGE_SIZES } from '../../utils/constants';
 
 const EditorPlantilla = () => {
   const { id: plantillaId } = useParams();
@@ -62,8 +51,7 @@ const EditorPlantilla = () => {
   const [previewRecordIndex, setPreviewRecordIndex] = useState(0);
   const [previewRecords, setPreviewRecords] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-  const [isSaving, setIsSaving] = useState(false);
-  const [activeStep, setActiveStep] = useState(0);
+  const [setIsSaving] = useState(false);
 
   const fileInputRef = useRef(null);
 

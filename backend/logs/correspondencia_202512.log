@@ -816,3 +816,41 @@
 2025-12-22 10:18:51,560 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
 2025-12-22 10:28:30,352 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
 2025-12-22 10:30:16,232 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-22 11:28:26,266 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-22 11:28:40,160 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 0.00ms
+2025-12-22 11:28:40,163 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 2.98ms
+2025-12-22 11:28:40,178 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 12.20ms
+2025-12-22 11:28:40,179 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 11.07ms
+2025-12-22 11:28:49,819 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-22 11:28:52,005 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 0.00ms
+2025-12-22 11:28:52,409 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 399.44ms
+2025-12-22 11:28:57,810 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 0.00ms
+2025-12-22 11:28:57,817 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 0.98ms
+2025-12-22 11:28:57,824 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 1.00ms
+2025-12-22 11:28:57,845 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 17.00ms
+2025-12-22 11:28:58,001 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 1.00ms
+2025-12-22 11:28:58,007 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.98ms
+2025-12-22 11:28:58,022 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 0.00ms
+2025-12-22 11:28:58,041 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 14.14ms
+2025-12-22 11:28:59,824 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 0.00ms
+2025-12-22 11:28:59,854 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 21.99ms
+2025-12-22 11:29:00,034 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 1.00ms
+2025-12-22 11:29:00,041 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-22 11:29:00,109 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 28.86ms
+2025-12-22 11:29:00,124 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 7.00ms
+2025-12-22 11:30:24,443 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 23.68ms
+2025-12-22 11:30:24,443 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 22.75ms
+2025-12-22 11:30:24,611 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 25.97ms
+2025-12-22 11:30:24,785 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-22 11:30:24,807 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 25.35ms
+2025-12-22 11:30:24,823 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 15.95ms
+2025-12-22 11:30:26,633 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-22 11:30:26,640 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 1.01ms
+2025-12-22 11:30:26,646 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 1.00ms
+2025-12-22 11:30:26,668 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 16.19ms
+2025-12-22 11:30:50,615 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 24.00ms
+2025-12-22 11:30:50,642 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 13.02ms
+2025-12-22 11:30:50,791 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 12.74ms
+2025-12-22 11:30:50,963 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-22 11:30:50,992 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 31.86ms
+2025-12-22 11:30:51,023 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 31.33ms

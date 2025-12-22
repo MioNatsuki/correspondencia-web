@@ -18,11 +18,6 @@ import {
   Fab,
   Breadcrumbs,
   Link,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  CircularProgress,
   Menu,
   MenuItem,
   ListItemIcon,
@@ -39,27 +34,19 @@ import Swal from 'sweetalert2';
 
 // Iconos
 import {
-  AiOutlinePlus,
   AiOutlineEdit,
   AiOutlineDelete,
-  AiOutlineEye,
   AiOutlineFileText,
   AiOutlineArrowLeft,
   AiOutlineReload,
-  AiOutlineProject,
   AiOutlineCopy,
   AiOutlineExport,
-  AiOutlineMore,
-  AiOutlineCalendar,
   AiOutlineFilePdf,
   AiOutlineCheckCircle,
   AiOutlineCloseCircle,
 } from 'react-icons/ai';
-import { BiFile, BiCalendar, BiDuplicate } from 'react-icons/bi';
-import { BsArrowRight, BsThreeDotsVertical } from 'react-icons/bs';
-
-// Helper para URLs de imágenes
-import { getImageUrl } from '../../utils/helpers';
+import { BiCalendar} from 'react-icons/bi';
+import { BsThreeDotsVertical } from 'react-icons/bs';
 
 const ListaPlantillas = () => {
   const { id: proyectoId } = useParams();
@@ -70,7 +57,7 @@ const ListaPlantillas = () => {
   // Estados
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedPlantilla, setSelectedPlantilla] = useState(null);
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [setOpenDeleteDialog] = useState(false);
   
   // Obtener proyecto
   const { data: proyecto, isLoading: loadingProyecto } = useQuery({
