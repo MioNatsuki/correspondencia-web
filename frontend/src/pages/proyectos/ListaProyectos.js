@@ -86,8 +86,16 @@ const ListaProyectos = () => {
     if (!logoPath) return null;
     // Si ya es una URL completa, devolverla
     if (logoPath.startsWith('http')) return logoPath;
-    // Si es una ruta relativa, construir URL
-    return `http://localhost:8000/uploads/${logoPath}`;
+        
+    // Normalizar barras invertidas a forward slashes (Windows → Unix)
+    let normalizedPath = logoPath.replace(/\\/g, '/');
+        
+    // Remover prefijo 'uploads/' si existe para evitar duplicación
+    if (normalizedPath.startsWith('uploads/')) {
+        normalizedPath = normalizedPath.substring(8); // Remueve "uploads/"
+    }
+    // Construir URL completa con el servidor backend
+    return `http://localhost:8000/uploads/${normalizedPath}`;
   };
   
   // Debug: Ver qué proyectos se obtienen
@@ -466,7 +474,7 @@ const ListaProyectos = () => {
                     {/* Logo con fallback */}
                     <Box
                       component="img"
-                      src={`http://localhost:8000/uploads/${proyecto.logo}`}
+                      src={getLogoUrl(proyecto.logo)}
                       alt={proyecto.nombre}
                       sx={{
                         width: '100%',

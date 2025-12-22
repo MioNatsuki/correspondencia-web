@@ -73,7 +73,6 @@ const DetalleProyecto = () => {
     if (normalizedPath.startsWith('uploads/')) {
       normalizedPath = normalizedPath.substring(8); // Remueve "uploads/"
     }
-    
     // Construir URL completa con el servidor backend
     return `http://localhost:8000/uploads/${normalizedPath}`;
   };
