@@ -1,8 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict 
 import os
 from pathlib import Path
+import uuid
+from datetime import datetime
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_admin
@@ -133,7 +135,9 @@ async def obtener_proyecto(
 
 @router.post("/", response_model=ProyectoResponse)
 async def crear_proyecto(
-    proyecto_data: ProyectoCreate,
+    nombre: str = Form(...),
+    descripcion: Optional[str] = Form(None),
+    tabla_padron: str = Form(...),
     logo: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin)
@@ -142,9 +146,11 @@ async def crear_proyecto(
     Crea un nuevo proyecto (solo admin/superadmin)
     """
     try:
+        print(f"📝 Creando proyecto: {nombre}, padrón: {tabla_padron}")
+        
         # Verificar que no exista proyecto con mismo nombre
         existente = db.query(Proyecto).filter(
-            Proyecto.nombre == proyecto_data.nombre,
+            Proyecto.nombre == nombre,
             Proyecto.is_deleted == False
         ).first()
         
@@ -156,55 +162,54 @@ async def crear_proyecto(
         
         # Verificar que el padrón exista
         padron = db.query(IdentificadorPadrones).filter(
-            IdentificadorPadrones.uuid_padron == proyecto_data.tabla_padron
+            IdentificadorPadrones.uuid_padron == tabla_padron
         ).first()
 
         if not padron:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Padrón con UUID {proyecto_data.tabla_padron} no encontrado"
+                detail=f"Padrón con UUID {tabla_padron} no encontrado"
             )
         
         # Guardar logo si se proporciona
         logo_path = None
         if logo and logo.filename:
-            import os
-            from pathlib import Path
-            import uuid
-
             # Directorio para logos
-            logos_dir = Path("uploads/logos")
+            logos_dir = Path(settings.UPLOAD_DIR) / "logos"
             logos_dir.mkdir(parents=True, exist_ok=True)
             
             # Generar nombre único
             ext = Path(logo.filename).suffix.lower()
             logo_name = f"proyecto_{uuid.uuid4().hex[:8]}{ext}"
-            logo_path = str(logos_dir / logo_name)
+            logo_path = f"logos/{logo_name}"
+            full_path = logos_dir / logo_name
             
             # Guardar archivo
-            with open(logo_path, "wb") as buffer:
+            with open(full_path, "wb") as buffer:
                 content = await logo.read()
                 buffer.write(content)
             
-            print(f"DEBUG: Logo guardado localmente en {logo_path}")
+            print(f"📸 Logo guardado: {full_path}")
         
         # Crear proyecto
         proyecto = Proyecto(
-            nombre=proyecto_data.nombre,
-            descripcion=proyecto_data.descripcion,
-            tabla_padron=proyecto_data.tabla_padron,  # ← UUID del padrón
+            nombre=nombre.strip(),
+            descripcion=descripcion.strip() if descripcion else None,
+            tabla_padron=tabla_padron,
             logo=logo_path,
             activo=True,
             config_json={
                 "creado_por": current_user.id,
-                "fecha_creacion": "auto",
-                "padron_nombre": padron.nombre_tabla  # Guardar nombre para referencia
+                "fecha_creacion": datetime.now().isoformat(),
+                "padron_nombre": padron.nombre_tabla
             }
         )
         
         db.add(proyecto)
         db.commit()
         db.refresh(proyecto)
+        
+        print(f"✅ Proyecto creado exitosamente: {proyecto.id}")
         
         # Registrar en bitácora
         log_auditoria(
@@ -225,17 +230,21 @@ async def crear_proyecto(
         raise
     except Exception as e:
         db.rollback()
+        print(f"❌ Error creando proyecto: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creando proyecto: {str(e)}"
         )
 
 @router.put("/{proyecto_id}", response_model=ProyectoResponse)
+@router.put("/{proyecto_id}", response_model=ProyectoResponse)
 async def actualizar_proyecto(
     proyecto_id: int,
-    proyecto_data: ProyectoUpdate,
+    nombre: Optional[str] = Form(None),
+    descripcion: Optional[str] = Form(None),
+    tabla_padron: Optional[str] = Form(None),
     logo: Optional[UploadFile] = File(None),
-    eliminar_logo: bool = False,
+    eliminar_logo: bool = Form(False),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin)
 ):
@@ -255,9 +264,9 @@ async def actualizar_proyecto(
             )
         
         # Verificar nombre único si se está cambiando
-        if proyecto_data.nombre and proyecto_data.nombre != proyecto.nombre:
+        if nombre and nombre != proyecto.nombre:
             existente = db.query(Proyecto).filter(
-                Proyecto.nombre == proyecto_data.nombre,
+                Proyecto.nombre == nombre,
                 Proyecto.is_deleted == False,
                 Proyecto.id != proyecto_id
             ).first()
@@ -269,15 +278,15 @@ async def actualizar_proyecto(
                 )
         
         # Verificar padrón si se está cambiando
-        if proyecto_data.tabla_padron and proyecto_data.tabla_padron != proyecto.tabla_padron:
+        if tabla_padron and tabla_padron != proyecto.tabla_padron:
             padron = db.query(IdentificadorPadrones).filter(
-                IdentificadorPadrones.uuid_padron == proyecto_data.tabla_padron
+                IdentificadorPadrones.uuid_padron == tabla_padron
             ).first()
             
             if not padron:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Padrón con UUID {proyecto_data.tabla_padron} no encontrado"
+                    detail=f"Padrón con UUID {tabla_padron} no encontrado"
                 )
         
         # Manejar logo
@@ -303,10 +312,12 @@ async def actualizar_proyecto(
             proyecto.logo = logo_path
         
         # Actualizar campos
-        update_data = proyecto_data.dict(exclude_unset=True, exclude={"logo"})
-        for field, value in update_data.items():
-            if value is not None and hasattr(proyecto, field):
-                setattr(proyecto, field, value)
+        if nombre is not None:
+            proyecto.nombre = nombre
+        if descripcion is not None:
+            proyecto.descripcion = descripcion
+        if tabla_padron is not None:
+            proyecto.tabla_padron = tabla_padron
         
         db.commit()
         db.refresh(proyecto)

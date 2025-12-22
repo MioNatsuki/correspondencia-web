@@ -59,7 +59,6 @@ class IdentificadorPadrones(Base):
     nombre_tabla = Column(String(100), unique=True, nullable=False)
     activo = Column(Boolean, default=True)
     descripcion = Column(Text)
-    fecha_registro = Column(DateTime(timezone=True), server_default=func.now())
 
 class Plantilla(Base):
     __tablename__ = "plantillas"

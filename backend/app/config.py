@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     # Servidor
     HOST: str = "127.0.0.1"
     PORT: int = 8000
+    BASE_URL: str = f"http://{HOST}:{PORT}"
     
     @property
     def ALLOWED_ORIGINS_LIST(self) -> List[str]:
@@ -46,6 +47,11 @@ class Settings(BaseSettings):
     def ALLOWED_IMAGE_EXTENSIONS(self) -> List[str]:
         """Extensiones permitidas para imágenes"""
         return [ext.strip() for ext in self.ALLOWED_EXTENSIONS_IMAGE.split(",")]
+    
+    @property
+    def UPLOAD_URL(self) -> str:
+        """URL base para archivos subidos"""
+        return f"{self.BASE_URL}/uploads"
     
     class Config:
         env_file = ".env"

@@ -317,28 +317,32 @@ const EditarProyecto = () => {
                 
                 <Grid item xs={12}>
                   <FormControl fullWidth required>
-                    <InputLabel>Padrón asociado *</InputLabel>
+                    <InputLabel>Seleccionar padrón *</InputLabel>
                     <Select
                       name="tabla_padron"
                       value={formData.tabla_padron}
-                      label="Padrón asociado *"
+                      label="Seleccionar padrón *"
                       onChange={handleChange}
                       disabled={isLoadingPadrones}
                     >
                       <MenuItem value="">
-                        <em>{isLoadingPadrones ? 'Cargando padrones...' : 'Seleccionar padrón'}</em>
+                        <em>{isLoadingPadrones ? 'Cargando...' : '-- Seleccione un padrón --'}</em>
                       </MenuItem>
                       {padrones?.map((padron) => (
                         <MenuItem key={padron.uuid_padron} value={padron.uuid_padron}>
-                          {/* Mostrar nombre_tabla (como en Python) */}
-                          {padron.nombre_tabla} 
-                          {padron.descripcion && ` - ${padron.descripcion.substring(0, 30)}...`}
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              {padron.nombre_tabla}
+                            </Typography>
+                            {padron.descripcion && (
+                              <Typography variant="caption" color="text.secondary">
+                                {padron.descripcion}
+                              </Typography>
+                            )}
+                          </Box>
                         </MenuItem>
                       ))}
                     </Select>
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      Selecciona el padrón que usará este proyecto (se guarda el UUID)
-                    </Typography>
                   </FormControl>
                 </Grid>
                 

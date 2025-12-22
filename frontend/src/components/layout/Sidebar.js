@@ -30,7 +30,6 @@ const drawerWidth = 280;
 const menuItems = [
   { text: 'Dashboard', icon: <AiOutlineDashboard />, path: '/dashboard' },
   { text: 'Proyectos', icon: <AiOutlineProject />, path: '/proyectos' },
-  { text: 'Plantillas', icon: <AiOutlineFileText />, path: '/plantillas' },
   { text: 'Procesamiento', icon: <BiStats />, path: '/procesamiento' },
 ];
 

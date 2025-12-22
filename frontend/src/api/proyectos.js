@@ -14,14 +14,22 @@ export const proyectosAPI = {
   },
   
   // Crear nuevo proyecto
-  createProyecto: async (proyectoData) => {
-    const response = await api.post('/proyectos', proyectoData);
+  createProyecto: async (formData) => {
+    const response = await api.post('/proyectos', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
   
   // Actualizar proyecto
-  updateProyecto: async (id, proyectoData) => {
-    const response = await api.put(`/proyectos/${id}`, proyectoData);
+  updateProyecto: async (id, formData) => {
+    const response = await api.put(`/proyectos/${id}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return response.data;
   },
   

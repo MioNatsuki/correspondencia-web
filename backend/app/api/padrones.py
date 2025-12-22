@@ -14,7 +14,7 @@ async def obtener_padrones(
     current_user: Usuario = Depends(get_current_user)
 ) -> List[dict]:
     """
-    Obtiene todos los padrones de identificador_padrones
+    Obtiene todos los padrones disponibles para asignar a proyectos
     """
     try:
         query = db.query(IdentificadorPadrones)

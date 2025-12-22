@@ -2,10 +2,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
+from pathlib import Path
 from app.config import settings
 from app.database import init_db, engine
 from app.middleware.auth_middleware import AuthMiddleware
 from app.api import api_router
+from fastapi.staticfiles import StaticFiles
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,6 +22,12 @@ async def lifespan(app: FastAPI):
         print("La base de datos se inició exitosamente")
     except Exception as e:
         print(f"Error inicializando base de datos: {e}")
+    
+    # Crear directorio de uploads si no existe
+    uploads_dir = Path("uploads")
+    logos_dir = uploads_dir / "logos"
+    logos_dir.mkdir(parents=True, exist_ok=True)
+    print(f"Directorio de uploads verificado: {uploads_dir.absolute()}")
     
     yield
     
@@ -54,6 +62,9 @@ app.add_middleware(AuthMiddleware)
 # Incluir routers
 app.include_router(api_router)
 
+# Directorio estático - servir archivos desde /uploads
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 # Rutas de salud
 @app.get("/")
 async def root():
@@ -75,7 +86,11 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Health check para monitoreo"""
-    return {"status": "healthy", "timestamp": "2024-01-01T00:00:00Z"}
+    from datetime import datetime
+    return {
+        "status": "healthy", 
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 # Ejecutar servidor
 if __name__ == "__main__":

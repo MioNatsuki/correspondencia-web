@@ -16,6 +16,7 @@ import Dashboard from './pages/dashboard/Dashboard';
 import ListaProyectos from './pages/proyectos/ListaProyectos';
 import DetalleProyecto from './pages/proyectos/DetalleProyecto';
 import EditarProyecto from './pages/proyectos/EditarProyecto';
+import ListaPlantillas from './pages/plantillas/ListaPlantillas';
 
 // Loading component
 import LoadingSpinner from './components/ui/LoadingSpinner';
@@ -102,6 +103,41 @@ function AppContent() {
         <ProtectedRoute requireAdmin>
           <MainLayout>
             <EditarProyecto />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/proyectos/:id/plantillas" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <ListaPlantillas />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/plantillas/nueva" element={
+        <ProtectedRoute requireAdmin>
+          <MainLayout>
+            {/* Por implementar */}
+            <div>Editor de Plantillas - Por implementar</div>
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/plantillas/:id" element={
+        <ProtectedRoute>
+          <MainLayout>
+            {/* Por implementar */}
+            <div>Detalle de Plantilla - Por implementar</div>
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/plantillas/editar/:id" element={
+        <ProtectedRoute requireAdmin>
+          <MainLayout>
+            {/* Por implementar */}
+            <div>Editor de Plantillas - Por implementar</div>
           </MainLayout>
         </ProtectedRoute>
       } />

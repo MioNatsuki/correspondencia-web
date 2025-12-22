@@ -21,13 +21,12 @@ import {
   FormControl,
   InputLabel,
   Select,
-  Switch,
-  FormControlLabel,
   Alert,
   Avatar,
   Tooltip,
   Fab,
   InputAdornment,
+  CircularProgress,
 } from '@mui/material';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
@@ -37,6 +36,7 @@ import { proyectosAPI } from '../../api/proyectos';
 import { padronesAPI } from '../../api/padrones';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import NuevoProyectoModal from '../../components/modals/NuevoProyectoModal';
 
 // Iconos
 import {
@@ -50,14 +50,11 @@ import {
   AiOutlineReload,
   AiOutlineFilter,
   AiOutlineSearch,
-  AiOutlineRest,
   AiOutlineInfoCircle,
-  AiOutlineSortAscending,
   AiOutlineCalendar,
 } from 'react-icons/ai';
-import { BiStats, BiTrash, BiArchive } from 'react-icons/bi';
-import { RiShieldKeyholeLine } from 'react-icons/ri';
-import { BsArrowRight, BsThreeDotsVertical, BsSortAlphaDown, BsSortAlphaUp } from 'react-icons/bs';
+import { BiStats, BiTrash } from 'react-icons/bi';
+import { BsArrowRight, BsSortAlphaDown, BsSortAlphaUp } from 'react-icons/bs';
 
 const ListaProyectos = () => {
   const { user, isAdmin } = useAuth();
@@ -65,23 +62,49 @@ const ListaProyectos = () => {
   const queryClient = useQueryClient();
   
   // Estados
+  const [modalOpen, setModalOpen] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [proyectoToDelete, setProyectoToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [orden, setOrden] = useState('nombre_asc');
   
   // Obtener proyectos
-  const { data: proyectos, isLoading, error, refetch } = useQuery({
+  const { 
+    data: proyectos = [], 
+    isLoading, 
+    error, 
+    refetch 
+  } = useQuery({
     queryKey: ['proyectos'],
     queryFn: () => proyectosAPI.getProyectos({
       incluir_eliminados: false,
       solo_activos: true,
     }),
   });
+
+  const getLogoUrl = (logoPath) => {
+    if (!logoPath) return null;
+    // Si ya es una URL completa, devolverla
+    if (logoPath.startsWith('http')) return logoPath;
+    // Si es una ruta relativa, construir URL
+    return `http://localhost:8000/uploads/${logoPath}`;
+  };
+  
+  // Debug: Ver qué proyectos se obtienen
+  React.useEffect(() => {
+    console.log('📊 Proyectos obtenidos:', proyectos);
+  }, [proyectos]);
+  
+  // Obtener padrones para info (opcional)
+  const { data: padrones = [] } = useQuery({
+    queryKey: ['padrones-list'],
+    queryFn: () => padronesAPI.getPadrones({ activos: true }),
+    enabled: false, // No cargar automáticamente
+  });
   
   // Filtrar y ordenar proyectos
   const proyectosFiltrados = React.useMemo(() => {
-    if (!proyectos) return [];
+    if (!proyectos || !Array.isArray(proyectos)) return [];
     
     let filtered = [...proyectos];
     
@@ -95,9 +118,6 @@ const ListaProyectos = () => {
         // Buscar en descripción
         if (proyecto.descripcion?.toLowerCase().includes(term)) return true;
         
-        // Buscar en nombre del padrón
-        if (proyecto.padron_info?.nombre_tabla?.toLowerCase().includes(term)) return true;
-        
         // Buscar en UUID del padrón
         if (proyecto.tabla_padron?.toLowerCase().includes(term)) return true;
         
@@ -109,26 +129,16 @@ const ListaProyectos = () => {
     filtered.sort((a, b) => {
       switch (orden) {
         case 'nombre_asc':
-          return a.nombre?.localeCompare(b.nombre);
+          return (a.nombre || '').localeCompare(b.nombre || '');
         
         case 'nombre_desc':
-          return b.nombre?.localeCompare(a.nombre);
+          return (b.nombre || '').localeCompare(a.nombre || '');
         
         case 'fecha_desc':
-          return new Date(b.fecha_creacion) - new Date(a.fecha_creacion);
+          return new Date(b.fecha_creacion || 0) - new Date(a.fecha_creacion || 0);
         
         case 'fecha_asc':
-          return new Date(a.fecha_creacion) - new Date(b.fecha_creacion);
-        
-        case 'padron_asc':
-          const padronA = a.padron_info?.nombre_tabla || 'ZZZ';
-          const padronB = b.padron_info?.nombre_tabla || 'ZZZ';
-          return padronA.localeCompare(padronB);
-        
-        case 'padron_desc':
-          const padronA2 = a.padron_info?.nombre_tabla || '';
-          const padronB2 = b.padron_info?.nombre_tabla || '';
-          return padronB2.localeCompare(padronA2);
+          return new Date(a.fecha_creacion || 0) - new Date(b.fecha_creacion || 0);
         
         default:
           return 0;
@@ -157,6 +167,7 @@ const ListaProyectos = () => {
       });
     },
     onError: (error) => {
+      console.error('Error eliminando proyecto:', error);
       Swal.fire({
         icon: 'error',
         title: 'Error',
@@ -186,8 +197,19 @@ const ListaProyectos = () => {
     }
   };
   
+  // Obtener nombre del padrón para mostrar (opcional)
+  const getNombrePadron = (uuidPadron) => {
+    if (!uuidPadron || !padrones.length) return null;
+    const padron = padrones.find(p => p.uuid_padron === uuidPadron);
+    return padron?.nombre_tabla || null;
+  };
+  
   if (isLoading) {
-    return <LoadingSpinner />;
+    return (
+      <Container maxWidth="lg" sx={{ mt: 4 }}>
+        <LoadingSpinner />
+      </Container>
+    );
   }
   
   if (error) {
@@ -203,6 +225,13 @@ const ListaProyectos = () => {
         >
           Error cargando proyectos: {error.message}
         </Alert>
+        <Button
+          startIcon={<AiOutlineProject />}
+          onClick={() => navigate('/dashboard')}
+          sx={{ mt: 2 }}
+        >
+          Volver al Dashboard
+        </Button>
       </Container>
     );
   }
@@ -240,7 +269,7 @@ const ListaProyectos = () => {
                 Gestión de Proyectos
               </Typography>
               <Typography variant="body1" color="text.secondary">
-                Crea y administra tus proyectos de correspondencia
+                {proyectosFiltrados.length} proyectos disponibles
               </Typography>
             </Box>
           </Box>
@@ -248,7 +277,7 @@ const ListaProyectos = () => {
           {isAdmin && (
             <CustomButton
               icon="add"
-              onClick={() => navigate('/proyectos/nuevo')}
+              onClick={() => setModalOpen(true)}
               sx={{ height: 48 }}
             >
               Nuevo Proyecto
@@ -256,14 +285,14 @@ const ListaProyectos = () => {
           )}
         </Box>
         
-        {/* Filtros y búsqueda MEJORADO */}
+        {/* Filtros y búsqueda */}
         <Paper sx={{ p: 3, mb: 3, borderRadius: 3, bgcolor: '#ffffff' }}>
           <Grid container spacing={3} alignItems="center">
-            {/* Búsqueda AMPLIADA */}
+            {/* Búsqueda */}
             <Grid item xs={12} md={7}>
               <TextField
                 fullWidth
-                placeholder="🔍 Buscar proyectos por nombre, descripción, padrón..."
+                placeholder="Buscar proyectos por nombre, descripción..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -275,13 +304,12 @@ const ListaProyectos = () => {
                   sx: { 
                     borderRadius: 2,
                     fontFamily: "'Nunito', sans-serif",
-                    fontSize: '0.95rem'
                   }
                 }}
               />
             </Grid>
             
-            {/* Ordenamiento MEJORADO */}
+            {/* Ordenamiento */}
             <Grid item xs={12} md={5}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Typography variant="body2" sx={{ color: '#5a6b70', fontWeight: 500, whiteSpace: 'nowrap' }}>
@@ -298,12 +326,6 @@ const ListaProyectos = () => {
                     borderRadius: 2,
                     bgcolor: '#ffffff',
                     fontFamily: "'Nunito', sans-serif",
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#aae6d9',
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#7ab3a5',
-                    }
                   }}
                 >
                   <MenuItem value="nombre_asc">
@@ -328,18 +350,6 @@ const ListaProyectos = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <AiOutlineCalendar />
                       <span>Más antiguos</span>
-                    </Box>
-                  </MenuItem>
-                  <MenuItem value="padron_asc">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AiOutlineTeam />
-                      <span>Padrón (A → Z)</span>
-                    </Box>
-                  </MenuItem>
-                  <MenuItem value="padron_desc">
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AiOutlineTeam />
-                      <span>Padrón (Z → A)</span>
                     </Box>
                   </MenuItem>
                 </Select>
@@ -370,29 +380,27 @@ const ListaProyectos = () => {
           </Grid>
           
           {/* Contador de resultados */}
-          {proyectos && (
-            <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Chip 
-                label={`${proyectosFiltrados.length} de ${proyectos.length} proyectos`}
-                size="small"
-                sx={{ 
-                  bgcolor: 'rgba(170, 230, 217, 0.1)',
-                  color: '#7ab3a5',
-                  fontWeight: 500
-                }}
-              />
-              {searchTerm && (
-                <Typography variant="caption" color="text.secondary">
-                  Filtrados por: "{searchTerm}"
-                </Typography>
-              )}
-            </Box>
-          )}
+          <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Chip 
+              label={`${proyectosFiltrados.length} de ${proyectos.length} proyectos`}
+              size="small"
+              sx={{ 
+                bgcolor: 'rgba(170, 230, 217, 0.1)',
+                color: '#7ab3a5',
+                fontWeight: 500
+              }}
+            />
+            {searchTerm && (
+              <Typography variant="caption" color="text.secondary">
+                Filtrados por: "{searchTerm}"
+              </Typography>
+            )}
+          </Box>
         </Paper>
       </Box>
       
       {/* Lista de proyectos */}
-      {proyectosFiltrados?.length === 0 ? (
+      {proyectosFiltrados.length === 0 ? (
         <Paper
           sx={{
             p: 8,
@@ -413,7 +421,7 @@ const ListaProyectos = () => {
           {isAdmin && !searchTerm && (
             <CustomButton
               icon="add"
-              onClick={() => navigate('/proyectos/nuevo')}
+              onClick={() => setModalOpen(true)}
             >
               Crear Primer Proyecto
             </CustomButton>
@@ -430,14 +438,13 @@ const ListaProyectos = () => {
         </Paper>
       ) : (
         <Grid container spacing={3}>
-          {proyectosFiltrados?.map((proyecto) => (
+          {proyectosFiltrados.map((proyecto) => (
             <Grid item xs={12} sm={6} md={4} key={proyecto.id}>
               <Card 
                 sx={{ 
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
-                  border: proyecto.is_deleted ? '2px dashed #e6b0aa' : 'none',
                   transition: 'transform 0.2s, box-shadow 0.2s',
                   '&:hover': {
                     transform: 'translateY(-4px)',
@@ -447,19 +454,56 @@ const ListaProyectos = () => {
               >
                 {/* Logo del proyecto */}
                 {proyecto.logo ? (
-                  <CardMedia
-                    component="img"
-                    height="160"
-                    image={proyecto.logo}
-                    alt={proyecto.nombre}
-                    sx={{ 
-                      objectFit: 'contain', 
-                      p: 2, 
+                  <Box
+                    sx={{
+                      height: 160,
+                      position: 'relative',
                       bgcolor: '#f8f9fa',
-                      borderBottom: '1px solid rgba(0,0,0,0.05)'
+                      borderBottom: '1px solid rgba(0,0,0,0.05)',
+                      overflow: 'hidden',
                     }}
-                  />
+                  >
+                    {/* Logo con fallback */}
+                    <Box
+                      component="img"
+                      src={`http://localhost:8000/uploads/${proyecto.logo}`}
+                      alt={proyecto.nombre}
+                      sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain',
+                        p: 2,
+                        transition: 'opacity 0.3s',
+                      }}
+                      onError={(e) => {
+                        // Si falla la imagen, ocultarla y mostrar placeholder
+                        e.target.style.opacity = '0';
+                      }}
+                    />
+                    {/* Placeholder que se muestra si falla el logo */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #aae6d9, #e6b0aa)',
+                        opacity: proyecto.logo ? 0 : 1, // Mostrar solo si no hay logo o falló
+                        transition: 'opacity 0.3s',
+                        '&:hover': {
+                          opacity: 1, // Forzar mostrar placeholder al hover si el logo falló
+                        }
+                      }}
+                    >
+                      <AiOutlineProject size={64} color="#ffffff" />
+                    </Box>
+                  </Box>
                 ) : (
+                  // Si no hay logo definido, mostrar placeholder directamente
                   <Box
                     sx={{
                       height: 160,
@@ -484,7 +528,7 @@ const ListaProyectos = () => {
                       WebkitLineClamp: 2,
                       WebkitBoxOrient: 'vertical',
                     }}>
-                      {proyecto.nombre}
+                      {proyecto.nombre || 'Proyecto sin nombre'}
                     </Typography>
                     <Chip
                       label={proyecto.activo ? 'Activo' : 'Inactivo'}
@@ -514,35 +558,29 @@ const ListaProyectos = () => {
                     {proyecto.descripcion || 'Sin descripción'}
                   </Typography>
                   
-                  {/* Información del padrón */}
-                  <Box sx={{ mb: 2, p: 1.5, bgcolor: 'rgba(170, 230, 217, 0.05)', borderRadius: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                      <AiOutlineTeam size={14} color="#7ab3a5" />
-                      <Typography variant="caption" fontWeight={500} color="#7ab3a5">
-                        Padrón asociado:
+                  {/* Información básica */}
+                  <Box sx={{ mb: 2 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <AiOutlineFileText size={14} color="#a1a1a1" />
+                      <Typography variant="caption" color="text.secondary">
+                        {proyecto.num_plantillas || 0} plantillas
                       </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ fontSize: '0.85rem' }}>
-                      {proyecto.padron_info?.nombre_tabla || proyecto.tabla_padron?.substring(0, 8) + '...' || 'Sin padrón'}
-                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <AiOutlineInfoCircle size={14} color="#a1a1a1" />
+                      <Typography variant="caption" color="text.secondary">
+                        {proyecto.tabla_padron ? `UUID: ${proyecto.tabla_padron.substring(0, 8)}...` : 'Sin padrón'}
+                      </Typography>
+                    </Box>
                   </Box>
                   
-                  {/* Estadísticas */}
-                  <Grid container spacing={1} sx={{ mb: 2 }}>
-                    <Grid item xs={6}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <AiOutlineFileText size={14} color="#a1a1a1" />
-                        <Typography variant="caption" color="text.secondary">
-                          {proyecto.num_plantillas || 0} plantillas
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="caption" color="text.secondary">
-                        Creado: {new Date(proyecto.fecha_creacion).toLocaleDateString('es-MX')}
-                      </Typography>
-                    </Grid>
-                  </Grid>
+                  {/* Fecha */}
+                  <Typography variant="caption" color="text.secondary">
+                    Creado: {proyecto.fecha_creacion ? 
+                      new Date(proyecto.fecha_creacion).toLocaleDateString('es-MX') : 
+                      'Fecha desconocida'}
+                  </Typography>
                 </CardContent>
                 
                 <CardActions sx={{ p: 2, pt: 0 }}>
@@ -553,7 +591,7 @@ const ListaProyectos = () => {
                     onClick={() => navigate(`/proyectos/${proyecto.id}`)}
                     sx={{ flexGrow: 1 }}
                   >
-                    Abrir Proyecto
+                    Ver Detalles
                   </CustomButton>
                   
                   {isAdmin && (
@@ -585,42 +623,49 @@ const ListaProyectos = () => {
         </Grid>
       )}
       
+      {/* Modal para nuevo proyecto */}
+      <NuevoProyectoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSuccess={() => {
+          refetch();
+          console.log('🔄 Lista de proyectos actualizada');
+        }}
+      />
+      
       {/* Diálogo de confirmación para eliminar */}
       <Dialog 
         open={openDeleteDialog} 
         onClose={() => setOpenDeleteDialog(false)}
         maxWidth="xs"
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
-        <DialogTitle sx={{ color: proyectoToDelete?.permanente ? 'error.main' : 'warning.main' }}>
-          {proyectoToDelete?.permanente ? '⚠️ Eliminación permanente' : '¿Eliminar proyecto?'}
+        <DialogTitle sx={{ color: 'error.main' }}>
+          <AiOutlineDelete style={{ marginRight: 8, verticalAlign: 'middle' }} />
+          ¿Eliminar proyecto?
         </DialogTitle>
         <DialogContent>
-          {proyectoToDelete?.permanente ? (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              Esta acción NO se puede deshacer
-            </Alert>
-          ) : null}
           <Typography>
-            {proyectoToDelete?.permanente 
-              ? `¿Estás seguro de eliminar permanentemente "${proyectoToDelete.nombre}"?`
-              : `¿Estás seguro de eliminar "${proyectoToDelete?.nombre}"?`
-            }
+            ¿Estás seguro de eliminar "{proyectoToDelete?.nombre}"?
           </Typography>
-          {!proyectoToDelete?.permanente && (
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              El proyecto se marcará como eliminado (soft delete).
-            </Typography>
-          )}
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            El proyecto se marcará como eliminado (soft delete) y podrá restaurarse si es necesario.
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} color="inherit">
+          <Button 
+            onClick={() => setOpenDeleteDialog(false)} 
+            color="inherit"
+            disabled={deleteMutation.isPending}
+          >
             Cancelar
           </Button>
           <Button 
             onClick={handleConfirmDelete}
-            color={proyectoToDelete?.permanente ? "error" : "warning"}
+            color="error"
             variant="contained"
             disabled={deleteMutation.isPending}
+            startIcon={deleteMutation.isPending ? <CircularProgress size={16} /> : <AiOutlineDelete />}
           >
             {deleteMutation.isPending ? 'Eliminando...' : 'Confirmar'}
           </Button>
