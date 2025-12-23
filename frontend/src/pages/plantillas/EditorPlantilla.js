@@ -14,8 +14,6 @@ import {
   ToggleButtonGroup,
   Snackbar,
   IconButton,
-  Tooltip,
-  Badge
 } from '@mui/material';
 import {
   AiOutlineEye,
@@ -24,16 +22,15 @@ import {
   AiOutlineArrowLeft,
   AiOutlineArrowRight,
   AiOutlineClose,
-  AiOutlineHome
+  AiOutlineHome,
 } from 'react-icons/ai';
+import MuiAlert from '@mui/material/Alert'; // Necesario para Snackbar con severity
 import { useQuery, useMutation } from '@tanstack/react-query';
 
-// Usar tus componentes existentes
-import EditorToolbar from '../../components/editor/EditorToolbar'
+import EditorToolbar from '../../components/editor/EditorToolbar';
 import FieldsPanel from '../../components/editor/FieldsPanel';
 import PropertiesPanel from '../../components/editor/PropertiesPanel';
 import TemplateCanvas from '../../components/editor/TemplateCanvas';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 import { plantillasAPI } from '../../api/plantillas';
 import { UPLOADS_BASE_URL } from '../../utils/constants';
@@ -41,86 +38,82 @@ import { UPLOADS_BASE_URL } from '../../utils/constants';
 const EditorPlantilla = () => {
   const { plantillaId } = useParams();
   const navigate = useNavigate();
-  
+
   // Estados
   const [canvas, setCanvas] = useState(null);
   const [selectedObjects, setSelectedObjects] = useState([]);
-  const [mode, setMode] = useState('edit');
+  const [mode, setMode] = useState('edit'); // 'edit' | 'preview'
   const [previewIndex, setPreviewIndex] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
-   // Usar useRef para evitar problemas de re-render
   const canvasRef = useRef(null);
-  
-  // Callbacks del canvas - USAR useCallback
+  const originalStateRef = useRef(null); // Para restaurar al salir de preview
+
+  // Callbacks del canvas
   const handleCanvasReady = useCallback((canvasInstance) => {
     canvasRef.current = canvasInstance;
     setCanvas(canvasInstance);
-    
-    // Si hay campos existentes, cargarlos
-    if (plantilla?.campos && plantilla.campos.length > 0) {
-      loadExistingFields(canvasInstance, plantilla.campos);
-    }
-  }, [plantilla]);
-  
+  }, []);
+
   const handleSelectionChanged = useCallback((objects) => {
     setSelectedObjects(objects || []);
   }, []);
-  
-  // Asegurar que el canvas se limpie al desmontar
-  useEffect(() => {
-    return () => {
-      if (canvasRef.current) {
-        try {
-          canvasRef.current.dispose();
-        } catch (err) {
-          console.error('Error limpiando canvas:', err);
-        }
-      }
-    };
-  }, []);
-  
-  // Consultas - Usar las funciones que YA EXISTEN en plantillasAPI
-  const { 
-    data: plantilla, 
-    isLoading: loadingPlantilla, 
-    error: errorPlantilla 
+
+  // ==================== QUERIES ====================
+  const {
+    data: plantilla,
+    isLoading: loadingPlantilla,
+    error: errorPlantilla,
   } = useQuery({
     queryKey: ['plantilla', plantillaId],
     queryFn: () => plantillasAPI.getPlantilla(plantillaId),
-    enabled: !!plantillaId
+    enabled: !!plantillaId,
   });
-  
-  const { 
-    data: camposData,
-    isLoading: loadingCampos 
+
+  const {
+    data: camposPlantilla = [],
+    isLoading: loadingCamposPlantilla,
   } = useQuery({
-    queryKey: ['campos-disponibles', plantillaId],
-    queryFn: () => plantillasAPI.getCamposDisponibles(plantillaId),
-    enabled: !!plantillaId
+    queryKey: ['plantilla-campos', plantillaId],
+    queryFn: () => plantillasAPI.getCampos(plantillaId),
+    enabled: !!plantillaId,
   });
-  
-  const { 
+
+  // Suponiendo que la plantilla tiene un padron_id o similar para obtener las columnas disponibles
+  // Si no lo tienes, reemplaza esto con la lógica correcta de tu backend
+  const {
+    data: columnasPadron = [], // ← Aquí estaban usando "camposData" que no existía
+  } = useQuery({
+    queryKey: ['columnas-padron', plantilla?.padron_id],
+    queryFn: () => plantillasAPI.getColumnasPadron(plantilla.padron_id),
+    enabled: !!plantilla?.padron_id,
+  });
+
+  const {
     data: previewData,
-    refetch: refetchPreview 
+    refetch: refetchPreview,
   } = useQuery({
     queryKey: ['datos-preview', plantillaId, previewIndex],
     queryFn: () => plantillasAPI.getDatosEjemplo(plantillaId, 10),
-    enabled: !!plantillaId && mode === 'preview'
+    enabled: !!plantillaId && mode === 'preview',
   });
-  
-  // Mutaciones
+
+  // ==================== MUTATIONS ====================
   const saveMutation = useMutation({
     mutationFn: (campos) => plantillasAPI.updateCampos(plantillaId, campos),
     onSuccess: () => {
       showSnackbar('Campos guardados exitosamente', 'success');
     },
     onError: (error) => {
-      showSnackbar(`Error al guardar: ${error.message}`, 'error');
-    }
+      showSnackbar(`Error al guardar: ${error.message || 'Desconocido'}`, 'error');
+    },
   });
-  
-  // Funciones del editor
+
+  // ==================== FUNCIONES AUXILIARES ====================
+  const showSnackbar = (message, severity = 'info') => {
+    setSnackbar({ open: true, message, severity });
+  };
+
   const loadExistingFields = (canvasInstance, campos) => {
     campos.forEach((campo, index) => {
       if (campo.tipo === 'texto') {
@@ -137,8 +130,8 @@ const EditorPlantilla = () => {
           name: `text_${index}`,
           metadata: {
             fieldType: 'text',
-            campoId: campo.id
-          }
+            campoId: campo.id,
+          },
         });
       } else if (campo.tipo === 'campo') {
         TemplateCanvas.addDynamicField(canvasInstance, campo.columna_padron, {
@@ -154,22 +147,13 @@ const EditorPlantilla = () => {
           metadata: {
             fieldType: 'dynamic',
             campoId: campo.id,
-            fieldName: campo.columna_padron
-          }
+            fieldName: campo.columna_padron,
+          },
         });
       }
     });
   };
-  
-  const handleSave = () => {
-    if (!canvas) return;
-    
-    const estado = TemplateCanvas.getCanvasState(canvas);
-    const campos = convertirEstadoACampos(estado);
-    
-    saveMutation.mutate(campos);
-  };
-  
+
   const convertirEstadoACampos = (estado) => {
     return estado.objects.map((obj, index) => ({
       nombre: obj.name || `campo_${index}`,
@@ -187,62 +171,95 @@ const EditorPlantilla = () => {
       texto_fijo: obj.metadata?.fieldType === 'text' ? obj.text : null,
       columna_padron: obj.metadata?.fieldName || null,
       orden: index,
-      activo: true
+      activo: true,
     }));
   };
-  
-  // Funciones de vista previa
+
+  const handleSave = () => {
+    if (!canvas) return;
+
+    const estado = TemplateCanvas.getCanvasState(canvas);
+    const campos = convertirEstadoACampos(estado);
+
+    saveMutation.mutate(campos);
+  };
+
+  // ==================== VISTA PREVIA ====================
   const togglePreviewMode = () => {
     const newMode = mode === 'edit' ? 'preview' : 'edit';
+
+    if (newMode === 'preview' && canvas) {
+      // Guardar estado original antes de modificar textos
+      originalStateRef.current = canvas.toJSON();
+    }
+
+    if (mode === 'preview' && newMode === 'edit' && originalStateRef.current && canvas) {
+      // Restaurar estado original
+      canvas.loadFromJSON(originalStateRef.current, canvas.renderAll.bind(canvas));
+      originalStateRef.current = null;
+    }
+
     setMode(newMode);
-    
+    setPreviewIndex(0);
+
     if (newMode === 'preview') {
-      // Cargar datos de vista previa
       refetchPreview();
     }
   };
-  
+
   const updatePreview = useCallback(() => {
     if (!canvas || !previewData?.datos || previewData.datos.length === 0) return;
-    
+
     const datosRegistro = previewData.datos[previewIndex] || {};
-    
-    canvas.getObjects().forEach(obj => {
+
+    canvas.getObjects().forEach((obj) => {
       if (obj.metadata?.fieldType === 'dynamic' && obj.metadata?.fieldName) {
-        const fieldName = obj.metadata.fieldName;
-        const valor = datosRegistro[fieldName] || `<<${fieldName}>>`;
+        const valor = datosRegistro[obj.metadata.fieldName] ?? `<<${obj.metadata.fieldName}>>`;
         obj.set('text', valor);
       }
     });
-    
+
     canvas.renderAll();
   }, [canvas, previewData, previewIndex]);
-  
+
   useEffect(() => {
     if (mode === 'preview' && canvas) {
       updatePreview();
     }
   }, [mode, previewIndex, previewData, canvas, updatePreview]);
-  
+
   const handleNextPreview = () => {
     if (!previewData?.datos) return;
-    setPreviewIndex((prev) => 
-      prev < previewData.datos.length - 1 ? prev + 1 : 0
-    );
+    setPreviewIndex((prev) => (prev < previewData.datos.length - 1 ? prev + 1 : 0));
   };
-  
+
   const handlePrevPreview = () => {
     if (!previewData?.datos) return;
-    setPreviewIndex((prev) => 
-      prev > 0 ? prev - 1 : previewData.datos.length - 1
-    );
+    setPreviewIndex((prev) => (prev > 0 ? prev - 1 : previewData.datos.length - 1));
   };
-  
-  const showSnackbar = (message, severity = 'info') => {
-    setSnackbar({ open: true, message, severity });
-  };
-  
-  // Funciones del toolbar
+
+  // ==================== CARGA DE CAMPOS EXISTENTES ====================
+  useEffect(() => {
+    if (!canvas || camposPlantilla.length === 0) return;
+
+    canvas.clear();
+    loadExistingFields(canvas, camposPlantilla);
+  }, [canvas, camposPlantilla]);
+
+  // Limpieza al desmontar
+  useEffect(() => {
+    return () => {
+      if (canvasRef.current) {
+        try {
+          canvasRef.current.dispose();
+        } catch (err) {
+          console.error('Error limpiando canvas:', err);
+        }
+      }
+    };
+  }, []);
+
+  // ==================== FUNCIONES TOOLBAR ====================
   const handleAddTextField = () => {
     if (!canvas) return;
     TemplateCanvas.addTextField(canvas, {
@@ -251,10 +268,10 @@ const EditorPlantilla = () => {
       text: 'Texto de ejemplo',
       fontSize: 12,
       fontFamily: 'Arial',
-      fill: '#000000'
+      fill: '#000000',
     });
   };
-  
+
   const handleAddDynamicField = (fieldName) => {
     if (!canvas) return;
     TemplateCanvas.addDynamicField(canvas, fieldName, {
@@ -262,10 +279,11 @@ const EditorPlantilla = () => {
       top: 150,
       fontSize: 12,
       fontFamily: 'Arial',
-      fill: '#2196f3'
+      fill: '#2196f3',
     });
   };
-  
+
+  // ==================== RENDER ====================
   if (loadingPlantilla) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -273,12 +291,12 @@ const EditorPlantilla = () => {
       </Box>
     );
   }
-  
+
   if (errorPlantilla) {
     return (
       <Container sx={{ mt: 4 }}>
         <Alert severity="error">
-          Error cargando plantilla: {errorPlantilla.message}
+          Error cargando plantilla: {errorPlantilla.message || 'Desconocido'}
           <Button sx={{ ml: 2 }} onClick={() => navigate('/plantillas')}>
             Volver
           </Button>
@@ -286,18 +304,20 @@ const EditorPlantilla = () => {
       </Container>
     );
   }
-  
+
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f5f7fa' }}>
       {/* Header */}
-      <Paper sx={{ 
-        p: 2, 
-        borderRadius: 0, 
-        borderBottom: '1px solid #e0e0e0',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
+      <Paper
+        sx={{
+          p: 2,
+          borderRadius: 0,
+          borderBottom: '1px solid #e0e0e0',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <IconButton onClick={() => navigate('/plantillas')} size="small">
             <AiOutlineHome />
@@ -314,14 +334,9 @@ const EditorPlantilla = () => {
             </Typography>
           </Box>
         </Box>
-        
+
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <ToggleButtonGroup
-            value={mode}
-            exclusive
-            onChange={togglePreviewMode}
-            size="small"
-          >
+          <ToggleButtonGroup value={mode} exclusive onChange={togglePreviewMode} size="small">
             <ToggleButton value="edit">
               <AiOutlineEdit /> Editar
             </ToggleButton>
@@ -329,7 +344,7 @@ const EditorPlantilla = () => {
               <AiOutlineEye /> Vista Previa
             </ToggleButton>
           </ToggleButtonGroup>
-          
+
           {mode === 'preview' && previewData?.datos && (
             <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
               <IconButton size="small" onClick={handlePrevPreview}>
@@ -343,23 +358,19 @@ const EditorPlantilla = () => {
               </IconButton>
             </Box>
           )}
-          
+
           <Button
             variant="contained"
             startIcon={<AiOutlineSave />}
             onClick={handleSave}
-            disabled={saveMutation.isLoading || mode === 'preview'}
-            sx={{ 
-              ml: 2,
-              bgcolor: '#aae6d9', 
-              '&:hover': { bgcolor: '#7ab3a5' } 
-            }}
+            disabled={saveMutation.isPending || mode === 'preview' || !canvas}
+            sx={{ ml: 2, bgcolor: '#aae6d9', '&:hover': { bgcolor: '#7ab3a5' } }}
           >
-            {saveMutation.isLoading ? 'Guardando...' : 'Guardar'}
+            {saveMutation.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
         </Box>
       </Paper>
-      
+
       {/* Toolbar */}
       <Box sx={{ px: 2, py: 1 }}>
         <EditorToolbar
@@ -376,26 +387,24 @@ const EditorPlantilla = () => {
               canvas.renderAll();
             }
           }}
-          availableFields={camposData?.columnas || []}
+          availableFields={columnasPadron}
           selectedObjects={selectedObjects}
           readOnly={mode === 'preview'}
         />
       </Box>
-      
+
       {/* Contenido principal */}
       <Grid container sx={{ flex: 1, overflow: 'hidden', px: 2, pb: 2, gap: 2 }}>
-        {/* Panel izquierdo - Campos disponibles */}
         <Grid item xs={3} sx={{ height: '100%' }}>
           <FieldsPanel
             plantillaId={plantillaId}
-            onFieldSelect={(field) => handleAddDynamicField(field.nombre)}
-            onFieldDragStart={(field) => handleAddDynamicField(field.nombre)}
+            onFieldSelect={(field) => handleAddDynamicField(field.nombre || field)}
+            onFieldDragStart={(field) => handleAddDynamicField(field.nombre || field)}
             selectedFields={[]}
             readOnly={mode === 'preview'}
           />
         </Grid>
-        
-        {/* Centro - Canvas */}
+
         <Grid item xs={6} sx={{ height: '100%' }}>
           <Paper sx={{ height: '100%', p: 2, borderRadius: 2 }}>
             <TemplateCanvas
@@ -409,15 +418,13 @@ const EditorPlantilla = () => {
             />
           </Paper>
         </Grid>
-        
-        {/* Panel derecho - Propiedades */}
+
         <Grid item xs={3} sx={{ height: '100%' }}>
           <PropertiesPanel
             selectedObject={selectedObjects.length === 1 ? selectedObjects[0] : null}
             onPropertyChange={(property, value) => {
               if (canvas && selectedObjects.length === 1) {
-                const obj = selectedObjects[0];
-                obj.set(property, value);
+                selectedObjects[0].set(property, value);
                 canvas.renderAll();
               }
             }}
@@ -425,14 +432,22 @@ const EditorPlantilla = () => {
           />
         </Grid>
       </Grid>
-      
-      {/* Snackbar para notificaciones */}
+
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        message={snackbar.message}
-      />
+      >
+        <MuiAlert
+          elevation={6}
+          variant="filled"
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+        >
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </Box>
   );
 };
