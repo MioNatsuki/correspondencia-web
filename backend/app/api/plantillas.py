@@ -1,5 +1,5 @@
 # backend/app/api/plantillas.py - CONTENIDO COMPLETO
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
@@ -16,7 +16,7 @@ from app.utils.file_utils import guardar_archivo, eliminar_archivo, validar_arch
 from app.core.pdf_converter import PDFConverter
 from app.config import settings
 from typing import Dict, Any
-import datetime
+from datetime import datetime
 from fastapi.responses import FileResponse
 
 router = APIRouter(prefix="/plantillas", tags=["Plantillas"])
@@ -123,15 +123,15 @@ async def obtener_plantilla(
 # ========== CREAR PLANTILLA ==========
 @router.post("/", response_model=PlantillaResponse)
 async def crear_plantilla(
-    nombre: str = Query(...),
-    descripcion: Optional[str] = None,
-    proyecto_id: int = Query(...),
-    pdf_base: UploadFile = File(...),
+    nombre: str = Form(...),
+    descripcion: Optional[str] = Form(None),
+    proyecto_id: int = Form(...),
+    ruta_archivo: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin)
 ):
     """
-    Crea una nueva plantilla subiendo un PDF base
+    Crea una nueva plantilla subiendo un PDF base - VERSIÓN CORREGIDA
     """
     try:
         # 1. Verificar proyecto
@@ -144,22 +144,27 @@ async def crear_plantilla(
             raise HTTPException(404, "Proyecto no encontrado")
         
         # 2. Validar PDF
-        es_valido, mensaje = validar_archivo_pdf(pdf_base)
+        es_valido, mensaje = validar_archivo_pdf(ruta_archivo)
         if not es_valido:
             raise HTTPException(400, mensaje)
         
         # 3. Guardar PDF
-        pdf_path = guardar_archivo(pdf_base, "pdfs")
+        pdf_path = guardar_archivo(ruta_archivo, "pdfs")
         
         # 4. Crear plantilla
         plantilla = Plantilla(
             nombre=nombre.strip(),
             descripcion=descripcion.strip() if descripcion else None,
             proyecto_id=proyecto_id,
-            pdf_base=pdf_path,
-            usuario_creador_id=current_user.id,
+            ruta_archivo=pdf_path,  # ← ESTE CAMPO ES IMPORTANTE
+            usuario_creador=current_user.id,
             activa=True,
-            config_json={"paginas": 1, "dimensiones": "A4"}
+            campos_json={
+                "paginas": 1, 
+                "dimensiones": "A4",  # O "OFICIO_MEXICO"
+                "creado_por": current_user.nombre,
+                "fecha_creacion": datetime.now().isoformat()
+            }
         )
         
         db.add(plantilla)
@@ -167,10 +172,10 @@ async def crear_plantilla(
         db.refresh(plantilla)
         
         # 5. Generar preview de la primera página
-        preview_path, error = PDFConverter.pdf_a_imagen(pdf_path, 1, 1.0)
+        preview_path, error = PDFConverter.pdf_a_imagen(pdf_path, 1, 0.5)
         
         if not error:
-            plantilla.config_json["preview_url"] = f"/uploads/previews/{os.path.basename(preview_path)}"
+            plantilla.campos_json["preview_url"] = f"/uploads/previews/{os.path.basename(preview_path)}"
             db.commit()
         
         return plantilla
@@ -448,7 +453,7 @@ async def preview_plantilla(
             elementos.append(elemento)
         
         plantilla_def = {
-            "pdf_base": plantilla.pdf_base if plantilla.pdf_base and os.path.exists(plantilla.pdf_base) else None,
+            "ruta_archivo": plantilla.ruta_archivo if plantilla.ruta_archivo and os.path.exists(plantilla.ruta_archivo) else None,
             "elementos": elementos
         }
         
@@ -519,19 +524,19 @@ async def upload_pdf_plantilla(
             raise HTTPException(400, mensaje)
         
         # Eliminar PDF anterior si existe
-        if plantilla.pdf_base and os.path.exists(plantilla.pdf_base):
-            eliminar_archivo(plantilla.pdf_base)
+        if plantilla.ruta_archivo and os.path.exists(plantilla.ruta_archivo):
+            eliminar_archivo(plantilla.ruta_archivo)
         
         # Guardar nuevo PDF
         pdf_path = guardar_archivo(file, "pdfs")
         
         # Actualizar plantilla
-        plantilla.pdf_base = pdf_path
+        plantilla.ruta_archivo = pdf_path
         
         # Obtener metadatos del PDF
         metadata = PDFConverter.obtener_metadatos_pdf(pdf_path)
-        plantilla.config_json = {
-            **plantilla.config_json,
+        plantilla.campos_json = {
+            **plantilla.campos_json,
             "paginas": metadata.get("paginas", 1),
             "dimensiones": {
                 "ancho_mm": metadata.get("ancho_mm"),

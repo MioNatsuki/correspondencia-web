@@ -1,6 +1,5 @@
-// frontend/src/components/editor/TemplateCanvas.js
-import React, { useEffect, useRef, useState } from 'react';
-import { Canvas, Textbox, FabricImage } from 'fabric';
+// frontend/src/components/editor/TemplateCanvas.js - VERSIÓN CORREGIDA
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Box, Paper, Typography, Alert, CircularProgress } from '@mui/material';
 import { PAGE_SIZES } from '../../utils/constants';
 
@@ -14,29 +13,50 @@ const TemplateCanvas = ({
   readOnly = false
 }) => {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const fabricCanvasRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [fabricLoaded, setFabricLoaded] = useState(false);
   
-  // Dimensiones en píxeles (1mm = 3.78 pixels a 96 DPI)
-  const getDimensions = () => {
-    const size = PAGE_SIZES[pageSize] || PAGE_SIZES.OFICIO_MEXICO;
-    return {
-      width: size.width * 3.78,  // mm a pixels
-      height: size.height * 3.78,
-      mmWidth: size.width,
-      mmHeight: size.height
-    };
-  };
-  
-  // Inicializar canvas
+  // Cargar Fabric.js dinámicamente
   useEffect(() => {
-    if (!canvasRef.current) return;
+    let mounted = true;
+    
+    const loadFabric = async () => {
+      try {
+        // Importar Fabric.js dinámicamente para evitar problemas con SSR
+        const fabric = await import('fabric');
+        if (mounted) {
+          window.fabric = fabric;
+          setFabricLoaded(true);
+        }
+      } catch (err) {
+        console.error('Error cargando Fabric.js:', err);
+        if (mounted) {
+          setError('No se pudo cargar el editor de gráficos');
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadFabric();
+    
+    return () => {
+      mounted = false;
+    };
+  }, []);
+  
+  // Inicializar canvas cuando Fabric.js esté cargado
+  useEffect(() => {
+    if (!fabricLoaded || !canvasRef.current) return;
     
     const dimensions = getDimensions();
     
     try {
-      // Crear canvas de Fabric.js v6
+      const { Canvas, Textbox, FabricImage } = window.fabric;
+      
+      // Crear canvas de Fabric.js
       const canvas = new Canvas(canvasRef.current, {
         width: dimensions.width,
         height: dimensions.height,
@@ -44,24 +64,20 @@ const TemplateCanvas = ({
         selectionColor: 'rgba(170, 230, 217, 0.3)',
         selectionBorderColor: '#aae6d9',
         selectionLineWidth: 2,
-        preserveObjectStacking: true,
-        allowTouchScrolling: true,
-        stopContextMenu: true,
-        fireRightClick: true,
-        fireMiddleClick: false
+        preserveObjectStacking: true
       });
       
       fabricCanvasRef.current = canvas;
       
       // Configurar eventos
       canvas.on('selection:created', (e) => {
-        if (onSelectionChanged) {
+        if (onSelectionChanged && e.selected) {
           onSelectionChanged(e.selected);
         }
       });
       
       canvas.on('selection:updated', (e) => {
-        if (onSelectionChanged) {
+        if (onSelectionChanged && e.selected) {
           onSelectionChanged(e.selected);
         }
       });
@@ -78,6 +94,7 @@ const TemplateCanvas = ({
       }
       
       setIsLoading(false);
+      
     } catch (err) {
       console.error('Error inicializando canvas:', err);
       setError('Error al inicializar el editor');
@@ -91,24 +108,24 @@ const TemplateCanvas = ({
         fabricCanvasRef.current = null;
       }
     };
-  }, []);
+  }, [fabricLoaded, onCanvasReady, onSelectionChanged]);
   
   // Cargar PDF como fondo
   useEffect(() => {
-    if (!fabricCanvasRef.current || !pdfUrl) return;
+    if (!fabricCanvasRef.current || !pdfUrl || !window.fabric) return;
     
     const loadPdfBackground = async () => {
       setIsLoading(true);
       setError(null);
       
       try {
-        // Usar FabricImage.fromURL para Fabric.js v6
+        const { FabricImage } = window.fabric;
+        
         FabricImage.fromURL(pdfUrl, {
           crossOrigin: 'anonymous'
         }).then((img) => {
           if (!fabricCanvasRef.current) return;
           
-          // Escalar imagen para que quepa en el canvas
           const canvas = fabricCanvasRef.current;
           const scaleX = canvas.width / img.width;
           const scaleY = canvas.height / img.height;
@@ -121,13 +138,7 @@ const TemplateCanvas = ({
             selectable: false,
             evented: false,
             hasControls: false,
-            hasBorders: false,
-            lockMovementX: true,
-            lockMovementY: true,
-            lockScalingX: true,
-            lockScalingY: true,
-            lockRotation: true,
-            name: 'background'
+            hasBorders: false
           });
           
           canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
@@ -147,26 +158,45 @@ const TemplateCanvas = ({
     loadPdfBackground();
   }, [pdfUrl]);
   
+  const getDimensions = () => {
+    const size = PAGE_SIZES[pageSize] || PAGE_SIZES.OFICIO_MEXICO;
+    return {
+      width: size.width * 3.78,  // mm a pixels (96 DPI)
+      height: size.height * 3.78,
+      mmWidth: size.width,
+      mmHeight: size.height
+    };
+  };
+  
   const dimensions = getDimensions();
   
-  return (
-    <Box sx={{ position: 'relative' }}>
-      {/* Información del tamaño */}
-      <Paper sx={{ p: 1.5, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="body2" color="text.secondary">
-          Tamaño: {PAGE_SIZES[pageSize]?.name} ({dimensions.mmWidth.toFixed(1)}mm × {dimensions.mmHeight.toFixed(1)}mm)
+  if (!fabricLoaded) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+        <CircularProgress />
+        <Typography variant="body2" sx={{ ml: 2 }}>
+          Cargando editor...
         </Typography>
+      </Box>
+    );
+  }
+  
+  return (
+    <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/* Información del tamaño */}
+      <Paper sx={{ p: 1.5, mb: 2 }}>
         <Typography variant="body2" color="text.secondary">
-          {Math.round(dimensions.width)}px × {Math.round(dimensions.height)}px
+          Tamaño: {dimensions.mmWidth.toFixed(1)}mm × {dimensions.mmHeight.toFixed(1)}mm
         </Typography>
       </Paper>
       
       {/* Contenedor del canvas */}
       <Box
+        ref={containerRef}
         sx={{
           position: 'relative',
           width: '100%',
-          height: height,
+          height: `calc(100% - 80px)`,
           border: '2px dashed #aae6d9',
           borderRadius: 1,
           overflow: 'auto',
@@ -211,25 +241,20 @@ const TemplateCanvas = ({
           height={dimensions.height}
           style={{
             display: 'block',
-            maxWidth: '100%',
-            maxHeight: '100%'
+            margin: '0 auto',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
           }}
         />
       </Box>
-      
-      {/* Guías de ayuda */}
-      {!isLoading && !error && (
-        <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-          💡 Haz clic para seleccionar elementos, arrastra para mover, usa las teclas ←↑↓→ para ajustar posición
-        </Typography>
-      )}
     </Box>
   );
 };
 
-// Métodos para manipular el canvas desde fuera
+// Métodos para manipular el canvas
 TemplateCanvas.addTextField = (canvas, options = {}) => {
-  if (!canvas) return null;
+  if (!canvas || !window.fabric) return null;
+  
+  const { Textbox } = window.fabric;
   
   const defaultOptions = {
     text: 'Texto de ejemplo',
@@ -239,37 +264,12 @@ TemplateCanvas.addTextField = (canvas, options = {}) => {
     fontSize: 12,
     fontFamily: 'Arial',
     fill: '#000000',
-    textAlign: 'left',
-    lineHeight: 1.2,
-    editable: true
+    textAlign: 'left'
   };
   
   const mergedOptions = { ...defaultOptions, ...options };
   
-  const textbox = new Textbox(mergedOptions.text, {
-    left: mergedOptions.left,
-    top: mergedOptions.top,
-    width: mergedOptions.width,
-    fontSize: mergedOptions.fontSize,
-    fontFamily: mergedOptions.fontFamily,
-    fill: mergedOptions.fill,
-    textAlign: mergedOptions.textAlign,
-    lineHeight: mergedOptions.lineHeight,
-    editable: mergedOptions.editable,
-    hasControls: true,
-    hasBorders: true,
-    lockUniScaling: false,
-    lockScalingFlip: true,
-    padding: 4,
-    backgroundColor: 'rgba(255,255,255,0.7)',
-    name: 'text_field',
-    type: 'text',
-    metadata: {
-      createdAt: new Date().toISOString(),
-      fieldType: 'text'
-    }
-  });
-  
+  const textbox = new Textbox(mergedOptions.text, mergedOptions);
   canvas.add(textbox);
   canvas.setActiveObject(textbox);
   canvas.renderAll();
@@ -278,42 +278,20 @@ TemplateCanvas.addTextField = (canvas, options = {}) => {
 };
 
 TemplateCanvas.addDynamicField = (canvas, fieldName, options = {}) => {
-  if (!canvas) return null;
+  if (!canvas || !window.fabric) return null;
   
-  const defaultOptions = {
+  const { Textbox } = window.fabric;
+  
+  const dynamicText = `<<${fieldName}>>`;
+  const textbox = new Textbox(dynamicText, {
     left: 100,
-    top: 100,
+    top: 150,
     width: 150,
     fontSize: 12,
     fontFamily: 'Arial',
-    fill: '#000000',
-    textAlign: 'left'
-  };
-  
-  const mergedOptions = { ...defaultOptions, ...options };
-  
-  // Crear un campo dinámico (texto con marcador especial)
-  const dynamicText = `<<${fieldName}>>`;
-  const textbox = new Textbox(dynamicText, {
-    left: mergedOptions.left,
-    top: mergedOptions.top,
-    width: mergedOptions.width,
-    fontSize: mergedOptions.fontSize,
-    fontFamily: mergedOptions.fontFamily,
-    fill: mergedOptions.fill,
-    textAlign: mergedOptions.textAlign,
-    hasControls: true,
-    hasBorders: true,
-    padding: 4,
+    fill: '#2196f3',
     backgroundColor: 'rgba(170, 230, 217, 0.2)',
-    borderColor: '#aae6d9',
-    name: 'dynamic_field',
-    type: 'dynamic',
-    metadata: {
-      fieldName: fieldName,
-      fieldType: 'dynamic',
-      createdAt: new Date().toISOString()
-    }
+    ...options
   });
   
   canvas.add(textbox);
@@ -321,96 +299,6 @@ TemplateCanvas.addDynamicField = (canvas, fieldName, options = {}) => {
   canvas.renderAll();
   
   return textbox;
-};
-
-TemplateCanvas.getCanvasState = (canvas) => {
-  if (!canvas) return null;
-  
-  const objects = canvas.getObjects();
-  const state = {
-    objects: objects.map(obj => ({
-      type: obj.type,
-      left: obj.left,
-      top: obj.top,
-      width: obj.width,
-      height: obj.height,
-      scaleX: obj.scaleX,
-      scaleY: obj.scaleY,
-      angle: obj.angle,
-      fill: obj.fill,
-      fontSize: obj.fontSize,
-      fontFamily: obj.fontFamily,
-      textAlign: obj.textAlign,
-      text: obj.text,
-      metadata: obj.metadata || {},
-      name: obj.name
-    })),
-    backgroundImage: canvas.backgroundImage ? {
-      src: canvas.backgroundImage._element?.src || canvas.backgroundImage.getSrc(),
-      scaleX: canvas.backgroundImage.scaleX,
-      scaleY: canvas.backgroundImage.scaleY,
-      left: canvas.backgroundImage.left,
-      top: canvas.backgroundImage.top
-    } : null
-  };
-  
-  return state;
-};
-
-TemplateCanvas.loadCanvasState = (canvas, state) => {
-  if (!canvas || !state) return;
-  
-  // Limpiar canvas
-  canvas.clear();
-  
-  // Cargar fondo si existe
-  if (state.backgroundImage) {
-    FabricImage.fromURL(state.backgroundImage.src, {
-      crossOrigin: 'anonymous'
-    }).then((img) => {
-      img.set({
-        scaleX: state.backgroundImage.scaleX,
-        scaleY: state.backgroundImage.scaleY,
-        left: state.backgroundImage.left,
-        top: state.backgroundImage.top,
-        selectable: false,
-        evented: false
-      });
-      canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
-    });
-  }
-  
-  // Cargar objetos
-  state.objects.forEach(objData => {
-    let fabricObj;
-    
-    if (objData.type === 'textbox') {
-      fabricObj = new Textbox(objData.text || '', {
-        left: objData.left,
-        top: objData.top,
-        width: objData.width,
-        height: objData.height,
-        scaleX: objData.scaleX,
-        scaleY: objData.scaleY,
-        angle: objData.angle,
-        fill: objData.fill,
-        fontSize: objData.fontSize,
-        fontFamily: objData.fontFamily,
-        textAlign: objData.textAlign,
-        hasControls: true,
-        hasBorders: true,
-        name: objData.name,
-        metadata: objData.metadata
-      });
-    }
-    // Puedes agregar más tipos aquí
-    
-    if (fabricObj) {
-      canvas.add(fabricObj);
-    }
-  });
-  
-  canvas.renderAll();
 };
 
 export default TemplateCanvas;

@@ -128,8 +128,8 @@ const PlantillasProyecto = () => {
   };
 
   const getPreviewUrl = (plantilla) => {
-    if (plantilla.config_json?.preview_url) {
-      return `http://localhost:8000${plantilla.config_json.preview_url}`;
+    if (plantilla.campos_json?.preview_url) {
+      return `http://localhost:8000${plantilla.campos_json.preview_url}`;
     }
     return null;
   };
@@ -266,7 +266,7 @@ const PlantillasProyecto = () => {
                   <Divider sx={{ my: 1 }} />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
                     <Tooltip title="Número de páginas">
-                      <Chip label={`Páginas: ${plantilla.config_json?.paginas || 1}`} size="small" />
+                      <Chip label={`Páginas: ${plantilla.campos_json?.paginas || 1}`} size="small" />
                     </Tooltip>
                     <Typography variant="caption" color="text.secondary">
                       {new Date(plantilla.fecha_creacion).toLocaleDateString('es-MX')}

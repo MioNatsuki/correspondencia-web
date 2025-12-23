@@ -462,8 +462,8 @@ def _generar_pdfs_en_segundo_plano(session_id: str, plantilla_id: int, usuario_i
         # NOTA: Aquí necesitamos obtener la estructura real de campos
         # Por ahora usamos estructura básica
         plantilla_def = {
-            "pdf_base": plantilla.pdf_base if plantilla.pdf_base and os.path.exists(plantilla.pdf_base) else None,
-            "elementos": plantilla.config_json.get("elementos", []) if plantilla.config_json else []
+            "pdf_base": plantilla.ruta_archivo if plantilla.ruta_archivo and os.path.exists(plantilla.ruta_archivo) else None,
+            "elementos": plantilla.campos_json.get("elementos", []) if plantilla.campos_json else []
         }
         
         # Crear directorio de salida

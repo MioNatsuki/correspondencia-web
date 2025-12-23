@@ -168,8 +168,8 @@ class PlantillaResponse(PlantillaBase):
     proyecto_id: int
     activa: bool
     fecha_creacion: datetime
-    usuario_creador_id: Optional[int] = None
-    config_json: Optional[Dict[str, Any]] = None
+    usuario_creador: Optional[int] = None
+    campos_json: Optional[Dict[str, Any]] = None
     pdf_base: Optional[str] = None  # ← AGREGAR ESTO
     campos: Optional[List[Campo]] = None  # ← AGREGAR ESTO   
     class Config:

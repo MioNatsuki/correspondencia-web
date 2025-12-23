@@ -270,7 +270,7 @@ const ListaPlantillas = () => {
             {isAdmin && (
               <CustomButton
                 icon="add"
-                onClick={() => navigate(`/plantillas/nueva?proyecto=${proyectoId}`)}
+                onClick={() => navigate(`/plantillas/nueva?proyecto=${proyectoId}`)} // ← RUTA CORRECTA
                 sx={{ height: 48 }}
               >
                 Nueva Plantilla
@@ -502,7 +502,7 @@ const ListaPlantillas = () => {
                         <Tooltip title="Editar">
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/plantillas/${plantilla.id}/editor`)}
+                            onClick={() => navigate(`/plantillas/${plantilla.id}/editor`)} // ← RUTA CORRECTA
                             sx={{ 
                               color: 'primary.main',
                               '&:hover': { bgcolor: 'rgba(170, 230, 217, 0.1)' }

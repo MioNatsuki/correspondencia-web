@@ -1,5 +1,5 @@
-// frontend/src/components/plantillas/EditorPlantilla.js - NUEVO (en components/plantillas/)
-import React, { useState, useCallback, useEffect } from 'react';
+// frontend/src/components/plantillas/EditorPlantilla.js
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -45,9 +45,40 @@ const EditorPlantilla = () => {
   // Estados
   const [canvas, setCanvas] = useState(null);
   const [selectedObjects, setSelectedObjects] = useState([]);
-  const [mode, setMode] = useState('edit'); // 'edit' o 'preview'
+  const [mode, setMode] = useState('edit');
   const [previewIndex, setPreviewIndex] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+   // Usar useRef para evitar problemas de re-render
+  const canvasRef = useRef(null);
+  
+  // Callbacks del canvas - USAR useCallback
+  const handleCanvasReady = useCallback((canvasInstance) => {
+    canvasRef.current = canvasInstance;
+    setCanvas(canvasInstance);
+    
+    // Si hay campos existentes, cargarlos
+    if (plantilla?.campos && plantilla.campos.length > 0) {
+      loadExistingFields(canvasInstance, plantilla.campos);
+    }
+  }, [plantilla]);
+  
+  const handleSelectionChanged = useCallback((objects) => {
+    setSelectedObjects(objects || []);
+  }, []);
+  
+  // Asegurar que el canvas se limpie al desmontar
+  useEffect(() => {
+    return () => {
+      if (canvasRef.current) {
+        try {
+          canvasRef.current.dispose();
+        } catch (err) {
+          console.error('Error limpiando canvas:', err);
+        }
+      }
+    };
+  }, []);
   
   // Consultas - Usar las funciones que YA EXISTEN en plantillasAPI
   const { 
@@ -88,20 +119,6 @@ const EditorPlantilla = () => {
       showSnackbar(`Error al guardar: ${error.message}`, 'error');
     }
   });
-  
-  // Callbacks del canvas
-  const handleCanvasReady = useCallback((canvasInstance) => {
-    setCanvas(canvasInstance);
-    
-    // Si hay campos existentes, cargarlos
-    if (plantilla?.campos && plantilla.campos.length > 0) {
-      loadExistingFields(canvasInstance, plantilla.campos);
-    }
-  }, [plantilla]);
-  
-  const handleSelectionChanged = useCallback((objects) => {
-    setSelectedObjects(objects || []);
-  }, []);
   
   // Funciones del editor
   const loadExistingFields = (canvasInstance, campos) => {
@@ -382,7 +399,7 @@ const EditorPlantilla = () => {
         <Grid item xs={6} sx={{ height: '100%' }}>
           <Paper sx={{ height: '100%', p: 2, borderRadius: 2 }}>
             <TemplateCanvas
-              pdfUrl={plantilla?.pdf_base ? `${UPLOADS_BASE_URL}/${plantilla.pdf_base}` : null}
+              pdfUrl={plantilla?.ruta_archivo ? `${UPLOADS_BASE_URL}/${plantilla.ruta_archivo}` : null}
               pageSize="OFICIO_MEXICO"
               width="100%"
               height="100%"

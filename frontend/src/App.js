@@ -13,14 +13,17 @@ import MainLayout from './components/layout/MainLayout';
 // Pages
 import Login from './pages/auth/Login';
 import Dashboard from './pages/dashboard/Dashboard';
+
+//Proyectos
 import ListaProyectos from './pages/proyectos/ListaProyectos';
 import DetalleProyecto from './pages/proyectos/DetalleProyecto';
 import EditarProyecto from './pages/proyectos/EditarProyecto';
+
+//Plantillas
 import ListaPlantillas from './pages/plantillas/ListaPlantillas';
 import PlantillasProyecto from './pages/plantillas/PlantillasProyecto';
-
-// IMPORTAR EL EDITOR DE PLANTILLAS - CORREGIR ESTA LÍNEA
 import EditorPlantilla from './pages/plantillas/EditorPlantilla';
+import CrearPlantilla from './pages/plantillas/CrearPlantilla';
 
 // Loading component
 import LoadingSpinner from './components/ui/LoadingSpinner';
@@ -115,16 +118,30 @@ function AppContent() {
         </ProtectedRoute>
       } />
 
-      {/* EDITOR DE PLANTILLAS - CORREGIDO */}
-      <Route path="/plantillas/:plantillaId/editor" element={
+      <Route path="/plantillas/nueva" element={
         <ProtectedRoute requireAdmin>
           <MainLayout>
-            <EditorPlantilla /> {/* ← AQUÍ USAS EL COMPONENTE REAL */}
+            <CrearPlantilla />
           </MainLayout>
         </ProtectedRoute>
       } />
 
-      {/* SI NECESITAS TAMBIÉN ESTA RUTA */}
+      <Route path="/plantillas/:plantillaId/editor" element={
+        <ProtectedRoute requireAdmin>
+          <MainLayout>
+            <EditorPlantilla /> 
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/plantillas/:plantillaId" element={
+        <ProtectedRoute>
+          <MainLayout>
+            <EditorPlantilla />
+          </MainLayout>
+        </ProtectedRoute>
+      } />
+
       <Route path="/proyectos/:id/plantillas" element={
         <ProtectedRoute>
           <MainLayout>
