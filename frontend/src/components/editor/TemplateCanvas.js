@@ -1,15 +1,142 @@
-// frontend/src/components/editor/TemplateCanvas.js
+// frontend/src/components/editor/TemplateCanvas.js - VERSIÓN COMPLETA CON IFRAME
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { Box, Alert, CircularProgress, Typography } from '@mui/material';
 import { PAGE_SIZES, UPLOADS_BASE_URL } from '../../utils/constants';
+import api from '../../api/index';
+import PropTypes from 'prop-types';
 
+// Componente PdfViewer integrado
+const PdfViewer = ({ plantillaId, width, height }) => {
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const cargarPdf = async () => {
+      if (!plantillaId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        
+        // Obtener la plantilla para construir URL del PDF
+        const response = await api.get(`/plantillas/${plantillaId}`);
+        const plantilla = response.data;
+
+        if (!plantilla) {
+          throw new Error('Plantilla no encontrada');
+        }
+
+        let urlFinal = null;
+
+        // Prioridad 1: Usar pdf_base si está disponible
+        if (plantilla.pdf_base) {
+          urlFinal = `${UPLOADS_BASE_URL}${plantilla.pdf_base}`;
+        }
+        // Prioridad 2: Usar ruta_archivo
+        else if (plantilla.ruta_archivo) {
+          // Normalizar ruta de Windows
+          const rutaNormalizada = plantilla.ruta_archivo
+            .replace(/^\.\/uploads\\/, '/uploads/')
+            .replace(/\\/g, '/')
+            .replace('//', '/');
+          
+          urlFinal = `${UPLOADS_BASE_URL}${rutaNormalizada}`;
+        }
+
+        if (!urlFinal) {
+          throw new Error('No se encontró el PDF de la plantilla');
+        }
+
+        console.log('URL del PDF:', urlFinal);
+        setPdfUrl(urlFinal);
+
+      } catch (err) {
+        console.error('Error obteniendo PDF:', err);
+        setError(err.message);
+        // Usar un PDF de ejemplo como fallback
+        setPdfUrl('/ejemplo.pdf');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarPdf();
+  }, [plantillaId]);
+
+  if (loading) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100%',
+        bgcolor: '#f5f5f5'
+      }}>
+        <CircularProgress size={24} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100%',
+        bgcolor: '#f5f5f5',
+        p: 2
+      }}>
+        <Alert severity="warning" sx={{ width: '100%' }}>
+          {error}
+        </Alert>
+      </Box>
+    );
+  }
+
+  if (!pdfUrl) {
+    return (
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100%',
+        bgcolor: '#f5f5f5'
+      }}>
+        <Typography variant="body2" color="text.secondary">
+          Sin PDF disponible
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <iframe
+      src={pdfUrl}
+      title="PDF de plantilla"
+      style={{
+        width: '100%',
+        height: '100%',
+        border: 'none',
+        pointerEvents: 'none' // No interactúa con el mouse
+      }}
+      onLoad={() => console.log('PDF cargado')}
+    />
+  );
+};
+
+// Componente principal TemplateCanvas
 const TemplateCanvas = forwardRef(({
-  pdfUrl,
   pageSize = 'OFICIO_MEXICO',
   onCanvasReady,
   onSelectionChanged,
   readOnly = false,
-  backgroundColor = '#ffffff'
+  mode = 'edit',
+  plantillaId = null,
+  isPlantillaInactiva = false
 }, ref) => {
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
@@ -18,6 +145,14 @@ const TemplateCanvas = forwardRef(({
   const [error, setError] = useState(null);
   const [fabricLoaded, setFabricLoaded] = useState(false);
   const [canvasInstance, setCanvasInstance] = useState(null);
+  
+  // Dimensiones del canvas (OFICIO MEXICO en píxeles)
+  const dimensions = {
+    width: 816,  // 215.9mm * 3.78 ≈ 816px
+    height: 1285, // 340.1mm * 3.78 ≈ 1285px
+    mmWidth: 215.9,
+    mmHeight: 340.1
+  };
 
   // ==================== CARGAR FABRIC.JS ====================
   useEffect(() => {
@@ -49,19 +184,18 @@ const TemplateCanvas = forwardRef(({
 
     try {
       const { Canvas, Textbox } = fabricRef.current;
-      const dimensions = getDimensions();
 
-      // Crear canvas
+      // Crear canvas transparente
       const canvas = new Canvas(canvasRef.current, {
         width: dimensions.width,
         height: dimensions.height,
-        backgroundColor: backgroundColor,
+        backgroundColor: 'rgba(0,0,0,0)', // Transparente
         selectionColor: 'rgba(170, 230, 217, 0.3)',
         selectionBorderColor: '#aae6d9',
         selectionLineWidth: 2,
         preserveObjectStacking: true,
-        selection: !readOnly,
-        hoverCursor: readOnly ? 'default' : 'move',
+        selection: !readOnly && mode === 'edit' && !isPlantillaInactiva,
+        hoverCursor: readOnly || mode === 'preview' || isPlantillaInactiva ? 'default' : 'move',
         stopContextMenu: true
       });
 
@@ -75,10 +209,10 @@ const TemplateCanvas = forwardRef(({
       fabricRef.current.Object.prototype.touchCornerSize = 16;
       fabricRef.current.Object.prototype.padding = 4;
 
-      // Textbox por defecto SIN FONDO y EDITABLE
-      fabricRef.current.Textbox.prototype.backgroundColor = 'transparent';
-      fabricRef.current.Textbox.prototype.editable = !readOnly;
-      fabricRef.current.IText.prototype.editable = !readOnly;
+      // Textbox por defecto
+      fabricRef.current.Textbox.prototype.backgroundColor = 'rgba(255,255,255,0.7)';
+      fabricRef.current.Textbox.prototype.editable = !readOnly && mode === 'edit' && !isPlantillaInactiva;
+      fabricRef.current.IText.prototype.editable = !readOnly && mode === 'edit' && !isPlantillaInactiva;
 
       // Configurar eventos
       canvas.on('selection:created', (e) => {
@@ -101,7 +235,7 @@ const TemplateCanvas = forwardRef(({
 
       // Evento para doble clic en texto
       canvas.on('mouse:dblclick', (e) => {
-        if (readOnly) return;
+        if (readOnly || mode === 'preview' || isPlantillaInactiva) return;
         
         if (e.target && e.target.type === 'textbox') {
           e.target.enterEditing();
@@ -142,97 +276,12 @@ const TemplateCanvas = forwardRef(({
       setError('Error al inicializar el editor');
       setIsLoading(false);
     }
-  }, [fabricLoaded, readOnly, onCanvasReady, onSelectionChanged]);
+  }, [fabricLoaded, readOnly, mode, isPlantillaInactiva, onCanvasReady, onSelectionChanged]);
 
-  // ==================== CARGAR FONDO PDF ====================
-  useEffect(() => {
-    if (!canvasInstance || !pdfUrl || !fabricRef.current) return;
-
-    const loadBackground = () => {
-      setIsLoading(true);
-      setError(null);
-
-      const absoluteUrl = pdfUrl.startsWith('http') 
-        ? pdfUrl 
-        : `${UPLOADS_BASE_URL}${pdfUrl}`;
-
-      console.log('Cargando PDF desde:', absoluteUrl);
-
-      fabricRef.current.Image.fromURL(absoluteUrl, (img) => {
-        if (!canvasInstance || !img) {
-          setIsLoading(false);
-          return;
-        }
-
-        try {
-          const dimensions = getDimensions();
-          
-          // Escalar imagen para que quepa en el canvas
-          const scaleX = dimensions.width / img.width;
-          const scaleY = dimensions.height / img.height;
-          const scale = Math.min(scaleX, scaleY);
-
-          img.scale(scale);
-
-          // Centrar la imagen
-          img.set({
-            left: (dimensions.width - img.width * scale) / 2,
-            top: (dimensions.height - img.height * scale) / 2,
-            selectable: false,
-            evented: false,
-            hasControls: false,
-            hasBorders: false,
-            lockMovementX: true,
-            lockMovementY: true,
-            lockRotation: true,
-            lockScalingX: true,
-            lockScalingY: true,
-            originX: 'left',
-            originY: 'top'
-          });
-
-          canvasInstance.setBackgroundImage(img, canvasInstance.renderAll.bind(canvasInstance), {
-            crossOrigin: 'anonymous'
-          });
-
-          setIsLoading(false);
-          console.log('Fondo PDF cargado correctamente');
-
-        } catch (err) {
-          console.error('Error configurando fondo:', err);
-          setError('Error configurando el fondo del PDF');
-          setIsLoading(false);
-        }
-      }, {
-        crossOrigin: 'anonymous'
-      }, () => {
-        // Error callback
-        console.error('No se pudo cargar la imagen del PDF');
-        setError('No se pudo cargar el PDF como fondo. Verifica la URL.');
-        setIsLoading(false);
-        
-        // Crear fondo de relleno
-        canvasInstance.setBackgroundColor('#f8f9fa', canvasInstance.renderAll.bind(canvasInstance));
-      });
-    };
-
-    loadBackground();
-  }, [canvasInstance, pdfUrl]);
-
-  // ==================== MÉTODOS INTERNOS ====================
-  const getDimensions = useCallback(() => {
-    const size = PAGE_SIZES[pageSize] || PAGE_SIZES.OFICIO_MEXICO;
-    return {
-      width: size.width * 3.78,  // mm a pixels (96 DPI)
-      height: size.height * 3.78,
-      mmWidth: size.width,
-      mmHeight: size.height
-    };
-  }, [pageSize]);
-
+  // ==================== MÉTODOS DEL EDITOR ====================
   const addTextField = useCallback((options = {}) => {
-    if (!canvasInstance || !fabricRef.current) {
-      console.error('Canvas no está listo');
+    if (!canvasInstance || !fabricRef.current || isPlantillaInactiva) {
+      console.error('Canvas no está listo o plantilla inactiva');
       return null;
     }
 
@@ -255,20 +304,10 @@ const TemplateCanvas = forwardRef(({
         lockScalingFlip: true,
         splitByGrapheme: true,
         padding: 4,
-        backgroundColor: 'transparent', // SIN FONDO
+        backgroundColor: 'rgba(255,255,255,0.7)',
         metadata: {
           fieldType: 'text',
           ...options.metadata
-        }
-      });
-
-      // Hacer editable inmediatamente
-      textbox.on('added', () => {
-        if (!readOnly) {
-          setTimeout(() => {
-            textbox.enterEditing();
-            textbox.selectAll();
-          }, 50);
         }
       });
 
@@ -284,11 +323,11 @@ const TemplateCanvas = forwardRef(({
       console.error('Error agregando texto:', err);
       return null;
     }
-  }, [canvasInstance, readOnly]);
+  }, [canvasInstance, readOnly, isPlantillaInactiva]);
 
   const addDynamicField = useCallback((fieldName, options = {}) => {
-    if (!canvasInstance || !fabricRef.current) {
-      console.error('Canvas no está listo');
+    if (!canvasInstance || !fabricRef.current || !fieldName || isPlantillaInactiva) {
+      console.error('Canvas no está listo, campo inválido o plantilla inactiva');
       return null;
     }
 
@@ -307,25 +346,15 @@ const TemplateCanvas = forwardRef(({
         evented: !readOnly,
         hasControls: !readOnly,
         hasBorders: !readOnly,
-        editable: !readOnly, // EDITABLE
+        editable: !readOnly,
         lockScalingFlip: true,
         splitByGrapheme: true,
         padding: 4,
-        backgroundColor: 'transparent', // SIN FONDO
+        backgroundColor: 'rgba(255,255,255,0.7)',
         metadata: {
           fieldType: 'dynamic',
           fieldName: fieldName,
           ...options.metadata
-        }
-      });
-
-      // Hacer editable inmediatamente
-      textbox.on('added', () => {
-        if (!readOnly) {
-          setTimeout(() => {
-            textbox.enterEditing();
-            textbox.selectAll();
-          }, 50);
         }
       });
 
@@ -341,7 +370,7 @@ const TemplateCanvas = forwardRef(({
       console.error('Error agregando campo dinámico:', err);
       return null;
     }
-  }, [canvasInstance, readOnly]);
+  }, [canvasInstance, readOnly, isPlantillaInactiva]);
 
   const getCanvasState = useCallback(() => {
     if (!canvasInstance) return { objects: [] };
@@ -366,7 +395,7 @@ const TemplateCanvas = forwardRef(({
     if (!canvasInstance || !fabricRef.current || !Array.isArray(fields)) return;
 
     try {
-      // Limpiar solo objetos de usuario (mantener fondo)
+      // Limpiar solo objetos de usuario
       const objects = canvasInstance.getObjects();
       objects.forEach(obj => {
         if (obj.metadata?.fieldType) {
@@ -398,11 +427,11 @@ const TemplateCanvas = forwardRef(({
           evented: !readOnly,
           hasControls: !readOnly,
           hasBorders: !readOnly,
-          editable: !readOnly, // EDITABLE
+          editable: !readOnly,
           lockScalingFlip: true,
           splitByGrapheme: true,
           padding: 4,
-          backgroundColor: 'transparent', // SIN FONDO
+          backgroundColor: 'rgba(255,255,255,0.7)',
           metadata: {
             fieldType: field.tipo === 'texto' ? 'text' : 'dynamic',
             campoId: field.id,
@@ -432,7 +461,7 @@ const TemplateCanvas = forwardRef(({
           const value = data[fieldName] || `[${fieldName}]`;
           obj.set('text', value);
           obj.set('fill', '#2c3e50');
-          obj.set('backgroundColor', 'transparent');
+          obj.set('backgroundColor', 'rgba(255,255,255,0.7)');
         }
       });
 
@@ -482,83 +511,172 @@ const TemplateCanvas = forwardRef(({
     getCanvasState,
     loadFields,
     updatePreview,
-    clear: clearCanvas,
+    clearCanvas,
     removeSelected,
     renderAll: () => canvasInstance?.renderAll(),
     fabricInstance: canvasInstance
   }));
 
   // ==================== RENDER ====================
-  const dimensions = getDimensions();
-
-  if (isLoading) {
-    return (
-      <Box sx={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100%',
-        bgcolor: '#f8f9fa'
-      }}>
-        <CircularProgress size={40} />
-        <Typography variant="body2" sx={{ mt: 2 }}>
-          {fabricLoaded ? 'Cargando fondo...' : 'Cargando editor...'}
-        </Typography>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ 
+      position: 'relative', 
+      width: '100%', 
+      height: '100%',
+      display: 'flex', 
+      flexDirection: 'column',
+      overflow: 'hidden'
+    }}>
       {/* Información del tamaño */}
-      <Box sx={{ p: 1, bgcolor: 'rgba(0,0,0,0.02)', borderBottom: '1px solid #e0e0e0' }}>
+      <Box sx={{ 
+        p: 1, 
+        bgcolor: 'rgba(0,0,0,0.02)', 
+        borderBottom: '1px solid #e0e0e0',
+        flexShrink: 0
+      }}>
         <Typography variant="caption" color="text.secondary">
           Tamaño: {dimensions.mmWidth.toFixed(1)}mm × {dimensions.mmHeight.toFixed(1)}mm
-          {readOnly && ' (Vista previa - Solo lectura)'}
+          {mode === 'preview' && ' (Vista previa)'}
+          {isPlantillaInactiva && ' (Plantilla inactiva)'}
         </Typography>
       </Box>
 
-      {/* Contenedor del canvas */}
-      <Box
+      {/* Contenedor principal con scroll */}
+      <Box 
         ref={containerRef}
-        sx={{
+        sx={{ 
           flex: 1,
           position: 'relative',
           overflow: 'auto',
-          bgcolor: backgroundColor
+          bgcolor: '#f5f5f5'
         }}
       >
         {error && (
-          <Alert 
-            severity="error" 
-            sx={{ 
-              position: 'absolute',
-              top: 8,
-              left: 8,
-              right: 8,
-              zIndex: 11
-            }}
-          >
+          <Alert severity="error" sx={{ m: 2, position: 'absolute', zIndex: 10, width: 'calc(100% - 32px)' }}>
             {error}
           </Alert>
         )}
 
-        <canvas
-          ref={canvasRef}
-          width={dimensions.width}
-          height={dimensions.height}
-          style={{
-            display: 'block',
-            margin: '0 auto',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            cursor: readOnly ? 'default' : 'crosshair'
-          }}
-        />
+        {/* Contenedor con tamaño fijo para el PDF y canvas */}
+        <Box sx={{
+          position: 'relative',
+          width: dimensions.width,
+          height: dimensions.height,
+          margin: '20px auto',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          bgcolor: 'white'
+        }}>
+          {/* PDF como fondo (iframe) */}
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 1
+          }}>
+            <PdfViewer
+              plantillaId={plantillaId}
+              width="100%"
+              height="100%"
+            />
+          </Box>
+
+          {/* Canvas de Fabric.js superpuesto */}
+          <Box sx={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            zIndex: 2,
+            pointerEvents: readOnly || mode === 'preview' || isPlantillaInactiva ? 'none' : 'auto'
+          }}>
+            <canvas
+              ref={canvasRef}
+              width={dimensions.width}
+              height={dimensions.height}
+              style={{
+                display: 'block'
+              }}
+            />
+          </Box>
+
+          {/* Indicador de carga */}
+          {isLoading && (
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              bgcolor: 'rgba(255,255,255,0.9)',
+              zIndex: 3
+            }}>
+              <CircularProgress size={40} />
+              <Typography variant="body2" sx={{ ml: 2 }}>
+                Inicializando editor...
+              </Typography>
+            </Box>
+          )}
+
+          {/* Mensaje para plantilla inactiva */}
+          {isPlantillaInactiva && !isLoading && (
+            <Box sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              bgcolor: 'rgba(255, 152, 0, 0.1)',
+              zIndex: 4,
+              pointerEvents: 'none'
+            }}>
+              <Alert 
+                severity="warning" 
+                sx={{ 
+                  maxWidth: '80%',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+              >
+                <Typography variant="body2" fontWeight="bold">
+                  Plantilla Inactiva
+                </Typography>
+                <Typography variant="caption">
+                  Guarda los cambios para activar esta plantilla
+                </Typography>
+              </Alert>
+            </Box>
+          )}
+        </Box>
       </Box>
     </Box>
   );
 });
+
+TemplateCanvas.propTypes = {
+  pageSize: PropTypes.string,
+  onCanvasReady: PropTypes.func,
+  onSelectionChanged: PropTypes.func,
+  readOnly: PropTypes.bool,
+  mode: PropTypes.oneOf(['edit', 'preview']),
+  plantillaId: PropTypes.number,
+  isPlantillaInactiva: PropTypes.bool
+};
+
+TemplateCanvas.defaultProps = {
+  pageSize: 'OFICIO_MEXICO',
+  readOnly: false,
+  mode: 'edit',
+  plantillaId: null,
+  isPlantillaInactiva: false
+};
 
 TemplateCanvas.displayName = 'TemplateCanvas';
 

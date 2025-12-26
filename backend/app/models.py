@@ -68,6 +68,7 @@ class Plantilla(Base):
     nombre = Column(String(100), nullable=False)
     descripcion = Column(Text)
     ruta_archivo = Column(String(500))  # ← NUEVO (nombre real en BD)
+    pdf_base = Column(String(500))
     tipo_plantilla = Column(String(100))  # Si existe en BD
     campos_json = Column(JSON)  # Si existe en BD
     activa = Column(Boolean, default=True)

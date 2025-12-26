@@ -74,10 +74,13 @@ const ListaPlantillas = () => {
     refetch 
   } = useQuery({
     queryKey: ['plantillas-proyecto', proyectoId],
-    queryFn: () => plantillasAPI.getPlantillas({ proyecto_id: proyectoId }),
+    queryFn: () => plantillasAPI.getPlantillas({ 
+      proyecto_id: proyectoId,
+      activas: true  // ← FILTRAR SOLO ACTIVAS por defecto
+    }),
     enabled: !!proyectoId,
   });
-  
+
   // Mutación para eliminar plantilla
   const deleteMutation = useMutation({
     mutationFn: (plantillaId) => plantillasAPI.deletePlantilla(plantillaId),
