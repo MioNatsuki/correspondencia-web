@@ -18,6 +18,8 @@ from app.config import settings
 from typing import Dict, Any
 from datetime import datetime
 from fastapi.responses import FileResponse
+import fitz
+import inspect
 
 router = APIRouter(prefix="/plantillas", tags=["Plantillas"])
 
@@ -121,19 +123,21 @@ async def obtener_plantilla(
         raise HTTPException(500, f"Error obteniendo plantilla: {str(e)}")
 
 # ========== CREAR PLANTILLA ==========
-@router.post("/", response_model=PlantillaResponse)
+@router.post("/")
 async def crear_plantilla(
     nombre: str = Form(...),
     descripcion: Optional[str] = Form(None),
     proyecto_id: int = Form(...),
-    ruta_archivo: UploadFile = File(...),
+    pdf_file: UploadFile = File(...),  # ← Cambiar nombre a pdf_file
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(require_admin)
 ):
     """
-    Crea una nueva plantilla subiendo un PDF base - VERSIÓN CORREGIDA
+    Crea una nueva plantilla subiendo un PDF base - VERSIÓN SIMPLIFICADA
     """
     try:
+        print(f"Creando plantilla: {nombre} para proyecto {proyecto_id}")
+        
         # 1. Verificar proyecto
         proyecto = db.query(Proyecto).filter(
             Proyecto.id == proyecto_id,
@@ -143,25 +147,29 @@ async def crear_plantilla(
         if not proyecto:
             raise HTTPException(404, "Proyecto no encontrado")
         
+        print(f"Proyecto encontrado: {proyecto.nombre}")
+        
         # 2. Validar PDF
-        es_valido, mensaje = validar_archivo_pdf(ruta_archivo)
+        es_valido, mensaje = validar_archivo_pdf(pdf_file)
         if not es_valido:
             raise HTTPException(400, mensaje)
         
+        print("PDF válido")
+        
         # 3. Guardar PDF
-        pdf_path = guardar_archivo(ruta_archivo, "pdfs")
+        pdf_path = guardar_archivo(pdf_file, "pdfs")
+        print(f"PDF guardado en: {pdf_path}")
         
         # 4. Crear plantilla
         plantilla = Plantilla(
             nombre=nombre.strip(),
             descripcion=descripcion.strip() if descripcion else None,
             proyecto_id=proyecto_id,
-            ruta_archivo=pdf_path,  # ← ESTE CAMPO ES IMPORTANTE
+            ruta_archivo=pdf_path,
             usuario_creador=current_user.id,
             activa=True,
             campos_json={
-                "paginas": 1, 
-                "dimensiones": "A4",  # O "OFICIO_MEXICO"
+                "version": "1.0",
                 "creado_por": current_user.nombre,
                 "fecha_creacion": datetime.now().isoformat()
             }
@@ -171,22 +179,41 @@ async def crear_plantilla(
         db.commit()
         db.refresh(plantilla)
         
-        # 5. Generar preview de la primera página
-        preview_path, error = PDFConverter.pdf_a_imagen(pdf_path, 1, 0.5)
+        print(f"Plantilla creada con ID: {plantilla.id}")
         
-        if not error:
-            plantilla.campos_json["preview_url"] = f"/uploads/previews/{os.path.basename(preview_path)}"
-            db.commit()
+        # 5. Generar preview de la primera página (opcional)
+        try:
+            preview_path, error = PDFConverter.pdf_a_imagen(pdf_path, 1, 0.5)
+            if not error:
+                print(f"Preview generado: {preview_path}")
+        except Exception as preview_error:
+            print(f"Error generando preview: {preview_error}")
+            # No fallar por error en preview
         
-        return plantilla
+        return {
+            "id": plantilla.id,
+            "nombre": plantilla.nombre,
+            "ruta_archivo": plantilla.ruta_archivo,
+            "proyecto_id": plantilla.proyecto_id,
+            "message": "Plantilla creada exitosamente"
+        }
         
-    except HTTPException:
+    except HTTPException as he:
+        print(f"HTTPException en crear_plantilla: {he.detail}")
         raise
     except Exception as e:
+        print(f"Error crítico en crear_plantilla: {str(e)}")
+        import traceback
+        traceback.print_exc()
         # Limpiar archivos si hubo error
         if 'pdf_path' in locals() and os.path.exists(pdf_path):
-            eliminar_archivo(pdf_path)
-        db.rollback()
+            try:
+                eliminar_archivo(pdf_path)
+                print(f"PDF eliminado tras error: {pdf_path}")
+            except:
+                pass
+        if 'db' in locals():
+            db.rollback()
         raise HTTPException(500, f"Error creando plantilla: {str(e)}")
 
 # ========== ACTUALIZAR PLANTILLA ==========
@@ -638,14 +665,14 @@ async def obtener_columnas_disponibles(
     except Exception as e:
         raise HTTPException(500, f"Error obteniendo columnas: {str(e)}")
 
-@router.post("/{plantilla_id}/datos-ejemplo")
+@router.get("/{plantilla_id}/datos-ejemplo")
 async def obtener_datos_ejemplo(
     plantilla_id: int,
-    limit: int = 5,
+    limit: int = Query(5, ge=1, le=100),
     db: Session = Depends(get_db),
     current_user: Usuario = Depends(get_current_user)
 ):
-    """Obtiene datos de ejemplo del padrón para vista previa"""
+    """Obtiene datos REALES del padrón para vista previa"""
     try:
         plantilla = db.query(Plantilla).filter(
             Plantilla.id == plantilla_id,
@@ -665,7 +692,11 @@ async def obtener_datos_ejemplo(
             raise HTTPException(404, "Proyecto no encontrado")
         
         if not proyecto.tabla_padron:
-            return {"datos": [], "mensaje": "El proyecto no tiene padrón asignado"}
+            return {
+                "datos": [],
+                "mensaje": "El proyecto no tiene padrón asignado",
+                "success": False
+            }
         
         # Obtener el nombre de la tabla del padrón
         padron = db.query(IdentificadorPadrones).filter(
@@ -673,26 +704,83 @@ async def obtener_datos_ejemplo(
         ).first()
         
         if not padron:
-            return {"datos": [], "mensaje": "Padrón no encontrado"}
+            return {
+                "datos": [],
+                "mensaje": "Padrón no encontrado",
+                "success": False
+            }
         
-        # Obtener algunos registros de ejemplo
-        from sqlalchemy import text
-        query = text(f"SELECT * FROM {padron.nombre_tabla} LIMIT :limit")
-        
-        result = db.execute(query, {"limit": limit})
-        datos = []
-        
-        for row in result:
-            datos.append(dict(row._mapping))
-        
-        return {
-            "datos": datos,
-            "total": len(datos),
-            "nombre_tabla": padron.nombre_tabla
-        }
+        # Obtener registros REALES del padrón
+        try:
+            from sqlalchemy import text
+            
+            # Primero obtener columnas para construir SELECT
+            inspector = inspect(db.bind)
+            columns = inspector.get_columns(padron.nombre_tabla)
+            column_names = [col['name'] for col in columns]
+            
+            if not column_names:
+                return {
+                    "datos": [],
+                    "mensaje": "El padrón no tiene columnas",
+                    "success": False
+                }
+            
+            # Construir query dinámica
+            columns_str = ', '.join([f'"{col}"' for col in column_names])
+            query = text(f'SELECT {columns_str} FROM "{padron.nombre_tabla}" LIMIT :limit')
+            
+            result = db.execute(query, {"limit": limit})
+            datos = []
+            
+            for row in result:
+                row_dict = {}
+                for i, col in enumerate(column_names):
+                    value = row[i]
+                    # Convertir valores None a string vacío
+                    row_dict[col] = '' if value is None else str(value)
+                datos.append(row_dict)
+            
+            return {
+                "datos": datos,
+                "total": len(datos),
+                "nombre_tabla": padron.nombre_tabla,
+                "success": True
+            }
+            
+        except Exception as query_error:
+            print(f"Error en query SQL: {str(query_error)}")
+            # Fallback: datos de ejemplo
+            return {
+                "datos": [
+                    {
+                        "nombre": "JUAN PÉREZ GONZÁLEZ",
+                        "cuenta": "100001",
+                        "codigo_afiliado": "AF001",
+                        "direccion": "AV. PRINCIPAL 123, COL. CENTRO",
+                        "telefono": "555-123-4567",
+                        "monto": "2,500.00",
+                        "fecha": datetime.now().strftime("%d/%m/%Y")
+                    },
+                    {
+                        "nombre": "MARÍA GARCÍA LÓPEZ",
+                        "cuenta": "100002",
+                        "codigo_afiliado": "AF002",
+                        "direccion": "CALLE SECUNDARIA 456",
+                        "telefono": "555-987-6543",
+                        "monto": "1,800.50",
+                        "fecha": datetime.now().strftime("%d/%m/%Y")
+                    }
+                ],
+                "total": 2,
+                "nombre_tabla": padron.nombre_tabla if padron else "desconocido",
+                "success": False,
+                "mensaje": f"Usando datos de ejemplo: {str(query_error)}"
+            }
         
     except Exception as e:
-        raise HTTPException(500, f"Error obteniendo datos de ejemplo: {str(e)}")
+        print(f"Error obteniendo datos de ejemplo: {str(e)}")
+        raise HTTPException(500, f"Error obteniendo datos: {str(e)}")
     
 @router.get("/{plantilla_id}/campos-disponibles")
 async def obtener_campos_disponibles(
@@ -775,3 +863,123 @@ async def obtener_campos_disponibles(
         
     except Exception as e:
         raise HTTPException(500, f"Error obteniendo columnas: {str(e)}")
+
+@router.get("/{plantilla_id}/campos")
+async def obtener_campos(
+    plantilla_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtiene los campos de una plantilla"""
+    try:
+        campos = db.query(CampoPlantilla).filter(
+            CampoPlantilla.plantilla_id == plantilla_id,
+            CampoPlantilla.activo == True
+        ).order_by(CampoPlantilla.orden).all()
+        
+        return campos
+        
+    except Exception as e:
+        raise HTTPException(500, f"Error obteniendo campos: {str(e)}")
+
+@router.post("/{plantilla_id}/guardar-campos")
+async def guardar_campos_plantilla(
+    plantilla_id: int,
+    campos: List[dict],
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(require_admin)
+):
+    """Guarda o actualiza los campos de una plantilla"""
+    try:
+        # Verificar plantilla
+        plantilla = db.query(Plantilla).filter(
+            Plantilla.id == plantilla_id,
+            Plantilla.is_deleted == False
+        ).first()
+        
+        if not plantilla:
+            raise HTTPException(404, "Plantilla no encontrada")
+        
+        # Eliminar campos existentes (soft delete)
+        existing_campos = db.query(CampoPlantilla).filter(
+            CampoPlantilla.plantilla_id == plantilla_id
+        ).all()
+        
+        for campo in existing_campos:
+            campo.activo = False
+        
+        # Crear nuevos campos
+        for idx, campo_data in enumerate(campos):
+            campo = CampoPlantilla(
+                plantilla_id=plantilla_id,
+                nombre=campo_data.get('nombre', f'Campo {idx + 1}'),
+                tipo=campo_data.get('tipo', 'texto'),
+                x=campo_data.get('x', 0),
+                y=campo_data.get('y', 0),
+                ancho=campo_data.get('ancho', 100),
+                alto=campo_data.get('alto', 40),
+                alineacion=campo_data.get('alineacion', 'left'),
+                fuente=campo_data.get('fuente', 'Arial'),
+                tamano_fuente=campo_data.get('tamano_fuente', 12),
+                color=campo_data.get('color', '#000000'),
+                negrita=campo_data.get('negrita', False),
+                cursiva=campo_data.get('cursiva', False),
+                texto_fijo=campo_data.get('texto_fijo'),
+                columna_padron=campo_data.get('columna_padron'),
+                componentes_json=campo_data.get('componentes_json'),
+                tabla_config_json=campo_data.get('tabla_config_json'),
+                orden=idx,
+                activo=True
+            )
+            db.add(campo)
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"{len(campos)} campos guardados exitosamente",
+            "plantilla_id": plantilla_id
+        }
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(500, f"Error guardando campos: {str(e)}")
+
+@router.get("/{plantilla_id}/pdf-url")
+async def obtener_url_pdf(
+    plantilla_id: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user)
+):
+    """Obtiene la URL del PDF de la plantilla"""
+    try:
+        plantilla = db.query(Plantilla).filter(
+            Plantilla.id == plantilla_id,
+            Plantilla.is_deleted == False
+        ).first()
+        
+        if not plantilla:
+            raise HTTPException(404, "Plantilla no encontrada")
+        
+        if not plantilla.ruta_archivo:
+            raise HTTPException(404, "La plantilla no tiene PDF")
+        
+        # Verificar que el archivo existe
+        if not os.path.exists(plantilla.ruta_archivo):
+            raise HTTPException(404, "Archivo PDF no encontrado en el servidor")
+        
+        # Crear ruta relativa para el frontend
+        # Asumiendo que UPLOADS_BASE_URL está configurado
+        pdf_filename = os.path.basename(plantilla.ruta_archivo)
+        pdf_url = f"/uploads/pdfs/{pdf_filename}"
+        
+        return {
+            "pdf_url": pdf_url,
+            "filename": pdf_filename,
+            "exists": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Error obteniendo URL del PDF: {str(e)}")

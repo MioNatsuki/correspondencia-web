@@ -1246,3 +1246,368 @@
 2025-12-23 11:51:25,402 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 1.00ms
 2025-12-23 11:51:25,416 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 3.01ms
 2025-12-23 11:51:25,423 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 3.00ms
+2025-12-23 12:01:54,355 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 12:03:17,071 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-23 12:03:19,429 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 1.00ms
+2025-12-23 12:03:19,742 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 311.17ms
+2025-12-23 12:03:20,948 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 1.00ms
+2025-12-23 12:03:20,957 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 1.00ms
+2025-12-23 12:03:20,964 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 0.00ms
+2025-12-23 12:03:20,984 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 15.00ms
+2025-12-23 12:03:21,316 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 0.00ms
+2025-12-23 12:03:21,322 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-23 12:03:21,370 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 0.00ms
+2025-12-23 12:03:21,417 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 16.00ms
+2025-12-23 12:03:27,296 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 0.99ms
+2025-12-23 12:03:27,384 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 22.00ms
+2025-12-23 12:03:27,773 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 1.00ms
+2025-12-23 12:03:27,791 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 2.00ms
+2025-12-23 12:03:27,839 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 36.00ms
+2025-12-23 12:03:27,861 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 45.00ms
+2025-12-23 12:03:31,438 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-23 12:03:31,467 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-23 12:03:31,483 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 13.00ms
+2025-12-23 12:03:31,501 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 13.00ms
+2025-12-23 12:03:33,243 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-23 12:03:33,255 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 0.00ms
+2025-12-23 12:03:33,270 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 1.00ms
+2025-12-23 12:03:33,319 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 37.52ms
+2025-12-23 12:03:40,387 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 0.00ms
+2025-12-23 12:03:40,389 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 1.00ms
+2025-12-23 12:03:40,415 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 18.00ms
+2025-12-23 12:03:40,426 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 22.01ms
+2025-12-23 12:03:41,262 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 1.00ms
+2025-12-23 12:03:41,298 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 45.00ms
+2025-12-23 12:03:41,352 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 47.00ms
+2025-12-23 12:03:59,117 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 1.00ms
+2025-12-23 12:03:59,135 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 1.00ms
+2025-12-23 12:03:59,215 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-23 12:03:59,450 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 200 Time: 227.55ms
+2025-12-23 12:17:26,359 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 2.12ms
+2025-12-23 12:17:26,359 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 0.00ms
+2025-12-23 12:17:26,401 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 27.61ms
+2025-12-23 12:17:26,408 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 25.54ms
+2025-12-23 12:17:26,631 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 0.00ms
+2025-12-23 12:17:26,799 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 50.00ms
+2025-12-23 12:19:06,779 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 1.00ms
+2025-12-23 12:19:06,784 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 0.00ms
+2025-12-23 12:19:06,790 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 0.00ms
+2025-12-23 12:19:06,805 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 8.18ms
+2025-12-23 12:19:06,979 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 0.00ms
+2025-12-23 12:19:06,985 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.53ms
+2025-12-23 12:19:07,005 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 1.00ms
+2025-12-23 12:19:07,051 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 15.52ms
+2025-12-23 12:19:08,437 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/3 Status: 200 Time: 0.00ms
+2025-12-23 12:19:08,457 - correspondencia - INFO - API Request: GET /api/proyectos/3 Status: 200 Time: 13.00ms
+2025-12-23 12:19:08,639 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/3/estadisticas Status: 200 Time: 0.00ms
+2025-12-23 12:19:08,645 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-23 12:19:08,696 - correspondencia - INFO - API Request: GET /api/proyectos/3/estadisticas Status: 200 Time: 26.55ms
+2025-12-23 12:19:08,706 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 10.16ms
+2025-12-23 12:19:12,854 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/4 Status: 200 Time: 0.00ms
+2025-12-23 12:19:12,899 - correspondencia - INFO - API Request: GET /api/proyectos/4 Status: 200 Time: 16.00ms
+2025-12-23 12:19:13,023 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/4/estadisticas Status: 200 Time: 0.00ms
+2025-12-23 12:19:13,027 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-23 12:19:13,058 - correspondencia - INFO - API Request: GET /api/proyectos/4/estadisticas Status: 200 Time: 26.00ms
+2025-12-23 12:19:13,060 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 26.00ms
+2025-12-23 12:19:15,586 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 1.00ms
+2025-12-23 12:19:15,609 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 17.43ms
+2025-12-23 12:19:15,743 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 1.00ms
+2025-12-23 12:19:15,748 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.01ms
+2025-12-23 12:19:15,782 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 31.00ms
+2025-12-23 12:19:15,783 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 29.00ms
+2025-12-23 12:19:19,767 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-23 12:19:19,776 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 1.00ms
+2025-12-23 12:19:19,781 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 1.03ms
+2025-12-23 12:19:19,804 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 19.55ms
+2025-12-23 12:19:43,872 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 1.00ms
+2025-12-23 12:19:43,883 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 0.00ms
+2025-12-23 12:19:43,948 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-23 12:19:44,116 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 200 Time: 162.02ms
+2025-12-23 12:19:44,210 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/6 Status: 200 Time: 0.00ms
+2025-12-23 12:19:44,238 - correspondencia - INFO - API Request: GET /api/plantillas/6 Status: 200 Time: 22.99ms
+2025-12-23 12:19:44,370 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/6/campos-disponibles Status: 200 Time: 0.00ms
+2025-12-23 12:19:44,476 - correspondencia - INFO - API Request: GET /api/plantillas/6/campos-disponibles Status: 200 Time: 103.07ms
+2025-12-23 12:23:04,468 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 84.54ms
+2025-12-23 13:15:14,509 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 13:15:30,600 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 13:15:36,174 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 13:30:44,250 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 13:31:04,817 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 1.00ms
+2025-12-23 13:31:04,819 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 3.00ms
+2025-12-23 13:31:04,833 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 12.00ms
+2025-12-23 13:31:04,834 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 11.00ms
+2025-12-23 13:31:19,658 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-23 13:31:22,040 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 0.00ms
+2025-12-23 13:31:22,306 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 258.97ms
+2025-12-23 13:31:26,650 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 0.00ms
+2025-12-23 13:31:26,658 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 1.00ms
+2025-12-23 13:31:26,663 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 0.00ms
+2025-12-23 13:31:26,685 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 16.00ms
+2025-12-23 13:31:27,017 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 0.00ms
+2025-12-23 13:31:27,024 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-23 13:31:27,070 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 1.00ms
+2025-12-23 13:31:27,098 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 20.60ms
+2025-12-23 13:31:28,805 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 1.00ms
+2025-12-23 13:31:28,850 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 28.00ms
+2025-12-23 13:31:29,227 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 1.00ms
+2025-12-23 13:31:29,339 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-23 13:31:29,384 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 36.16ms
+2025-12-23 13:31:29,404 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 51.60ms
+2025-12-23 13:31:31,704 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-23 13:31:31,767 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 0.00ms
+2025-12-23 13:31:31,772 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-23 13:31:31,850 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 56.00ms
+2025-12-23 13:31:37,296 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/2 Status: 200 Time: 1.00ms
+2025-12-23 13:31:37,319 - correspondencia - INFO - API Request: DELETE /api/plantillas/2 Status: 200 Time: 15.31ms
+2025-12-23 13:31:37,377 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 26.01ms
+2025-12-23 13:31:37,383 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 0.00ms
+2025-12-23 13:31:37,656 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 24.00ms
+2025-12-23 13:32:18,647 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-23 13:32:18,660 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 0.00ms
+2025-12-23 13:32:18,744 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-23 13:32:18,972 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 200 Time: 219.45ms
+2025-12-23 13:32:19,225 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/7 Status: 200 Time: 0.00ms
+2025-12-23 13:32:19,296 - correspondencia - INFO - API Request: GET /api/plantillas/7 Status: 200 Time: 22.15ms
+2025-12-23 13:32:19,652 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/7/campos-disponibles Status: 200 Time: 1.00ms
+2025-12-23 13:32:19,761 - correspondencia - INFO - API Request: GET /api/plantillas/7/campos-disponibles Status: 200 Time: 85.64ms
+2025-12-23 13:32:53,972 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 7.00ms
+2025-12-23 13:32:53,983 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 7.00ms
+2025-12-23 13:33:09,627 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 14:45:11,297 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/7/datos-ejemplo Status: 200 Time: 1.00ms
+2025-12-23 14:45:11,303 - correspondencia - INFO - API Request: GET /api/plantillas/7/datos-ejemplo Status: 405 Time: 1.01ms
+2025-12-23 14:45:12,320 - correspondencia - INFO - API Request: GET /api/plantillas/7/datos-ejemplo Status: 405 Time: 1.00ms
+2025-12-23 15:08:11,127 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/7/datos-ejemplo Status: 200 Time: 0.00ms
+2025-12-23 15:08:11,157 - correspondencia - INFO - API Request: GET /api/plantillas/7/datos-ejemplo Status: 405 Time: 1.00ms
+2025-12-23 15:08:12,172 - correspondencia - INFO - API Request: GET /api/plantillas/7/datos-ejemplo Status: 405 Time: 1.03ms
+2025-12-23 15:29:25,306 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 15:30:11,784 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 15:35:31,691 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 0.00ms
+2025-12-23 15:35:31,695 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 4.00ms
+2025-12-23 15:35:31,712 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 12.00ms
+2025-12-23 15:35:31,712 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 11.00ms
+2025-12-23 15:40:56,547 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-23 15:40:58,779 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 0.00ms
+2025-12-23 15:40:58,989 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 189.65ms
+2025-12-23 15:41:11,379 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 0.00ms
+2025-12-23 15:41:11,387 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 0.00ms
+2025-12-23 15:41:11,399 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 0.00ms
+2025-12-23 15:41:11,427 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 23.01ms
+2025-12-23 15:41:11,580 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 0.00ms
+2025-12-23 15:41:11,585 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-23 15:41:11,606 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 1.00ms
+2025-12-23 15:41:11,651 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 16.15ms
+2025-12-23 15:41:13,601 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 0.00ms
+2025-12-23 15:41:13,635 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 24.17ms
+2025-12-23 15:41:13,808 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 0.00ms
+2025-12-23 15:41:13,813 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.01ms
+2025-12-23 15:41:13,847 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 32.20ms
+2025-12-23 15:41:13,856 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 35.00ms
+2025-12-23 15:41:20,847 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-23 15:41:20,861 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 1.04ms
+2025-12-23 15:41:20,878 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-23 15:41:20,929 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 40.03ms
+2025-12-23 15:41:26,658 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/7 Status: 200 Time: 0.00ms
+2025-12-23 15:41:26,682 - correspondencia - INFO - API Request: DELETE /api/plantillas/7 Status: 200 Time: 17.00ms
+2025-12-23 15:41:26,811 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 19.37ms
+2025-12-23 15:41:26,816 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 0.52ms
+2025-12-23 15:41:26,936 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 19.00ms
+2025-12-23 15:42:01,334 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-23 15:42:01,354 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 1.00ms
+2025-12-23 15:42:01,447 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.53ms
+2025-12-23 15:42:01,659 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 200 Time: 207.94ms
+2025-12-23 15:42:01,766 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/8 Status: 200 Time: 1.01ms
+2025-12-23 15:42:01,770 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/8/campos-disponibles Status: 200 Time: 0.00ms
+2025-12-23 15:42:01,789 - correspondencia - INFO - API Request: GET /api/plantillas/8 Status: 200 Time: 14.00ms
+2025-12-23 15:42:01,858 - correspondencia - INFO - API Request: GET /api/plantillas/8/campos-disponibles Status: 200 Time: 79.72ms
+2025-12-23 15:42:01,984 - correspondencia - INFO - API Request: GET /api/plantillas/8/campos-disponibles Status: 200 Time: 50.55ms
+2025-12-23 15:43:39,145 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/8/datos-ejemplo Status: 200 Time: 1.03ms
+2025-12-23 15:43:39,151 - correspondencia - INFO - API Request: GET /api/plantillas/8/datos-ejemplo Status: 405 Time: 1.03ms
+2025-12-23 15:43:40,167 - correspondencia - INFO - API Request: GET /api/plantillas/8/datos-ejemplo Status: 405 Time: 1.00ms
+2025-12-23 16:23:39,823 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:23:46,922 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:24:14,266 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:24:20,812 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:24:49,036 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:24:59,225 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:25:06,011 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:25:23,955 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:25:29,347 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 16:41:08,958 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 17:01:37,926 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 17:02:04,477 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 17:04:19,101 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-23 17:04:41,889 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 0.00ms
+2025-12-23 17:04:41,893 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 4.24ms
+2025-12-23 17:04:41,918 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 15.95ms
+2025-12-23 17:04:41,918 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 16.95ms
+2025-12-23 17:05:44,794 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-23 17:05:47,043 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 0.00ms
+2025-12-23 17:05:47,300 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 219.10ms
+2025-12-23 17:06:23,753 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 1.00ms
+2025-12-23 17:06:23,759 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 1.00ms
+2025-12-23 17:06:23,767 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 1.00ms
+2025-12-23 17:06:23,788 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 16.00ms
+2025-12-23 17:06:23,939 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 0.00ms
+2025-12-23 17:06:23,944 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-23 17:06:23,963 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 1.00ms
+2025-12-23 17:06:24,008 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 15.00ms
+2025-12-23 17:06:25,289 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 0.00ms
+2025-12-23 17:06:25,320 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 21.66ms
+2025-12-23 17:06:25,493 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 0.00ms
+2025-12-23 17:06:25,498 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.00ms
+2025-12-23 17:06:25,536 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 32.32ms
+2025-12-23 17:06:25,537 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 31.32ms
+2025-12-23 17:07:30,339 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-23 17:07:30,390 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 1.00ms
+2025-12-23 17:07:30,454 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-23 17:07:30,699 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 200 Time: 240.79ms
+2025-12-23 17:07:30,796 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/9 Status: 200 Time: 0.00ms
+2025-12-23 17:07:30,806 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/9/campos-disponibles Status: 200 Time: 1.00ms
+2025-12-23 17:07:30,839 - correspondencia - INFO - API Request: GET /api/plantillas/9 Status: 200 Time: 27.07ms
+2025-12-23 17:07:30,956 - correspondencia - INFO - API Request: GET /api/plantillas/9/campos-disponibles Status: 200 Time: 140.01ms
+2025-12-23 17:07:31,062 - correspondencia - INFO - API Request: GET /api/plantillas/9/campos-disponibles Status: 200 Time: 50.13ms
+2025-12-26 10:04:39,585 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 10:05:30,013 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-26 10:05:32,226 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 1.00ms
+2025-12-26 10:05:32,487 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 235.98ms
+2025-12-26 10:06:01,454 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 0.99ms
+2025-12-26 10:06:01,462 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 1.00ms
+2025-12-26 10:06:01,469 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 0.98ms
+2025-12-26 10:06:01,496 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 22.00ms
+2025-12-26 10:06:01,663 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 0.00ms
+2025-12-26 10:06:01,668 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-26 10:06:01,687 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 0.00ms
+2025-12-26 10:06:01,714 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 23.00ms
+2025-12-26 10:06:02,091 - correspondencia - INFO - API Request: GET /uploads/logos/proyecto_b7da5f37.jpg Status: 200 Time: 119.23ms
+2025-12-26 10:06:04,187 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 0.00ms
+2025-12-26 10:06:04,219 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 23.00ms
+2025-12-26 10:06:04,391 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 1.00ms
+2025-12-26 10:06:04,399 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-26 10:06:04,459 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 32.73ms
+2025-12-26 10:06:04,482 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 20.00ms
+2025-12-26 10:06:07,571 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-26 10:06:07,579 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 2.00ms
+2025-12-26 10:06:07,586 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-26 10:06:07,635 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 44.01ms
+2025-12-26 10:06:59,510 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/8 Status: 200 Time: 0.56ms
+2025-12-26 10:06:59,537 - correspondencia - INFO - API Request: DELETE /api/plantillas/8 Status: 200 Time: 18.62ms
+2025-12-26 10:06:59,609 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 37.00ms
+2025-12-26 10:06:59,617 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 0.00ms
+2025-12-26 10:06:59,752 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 29.01ms
+2025-12-26 10:07:41,290 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-26 10:07:41,302 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 1.03ms
+2025-12-26 10:07:41,434 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-26 10:07:41,785 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 200 Time: 343.95ms
+2025-12-26 10:07:41,884 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/10/campos-disponibles Status: 200 Time: 1.00ms
+2025-12-26 10:07:41,886 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/10 Status: 200 Time: 3.00ms
+2025-12-26 10:07:42,069 - correspondencia - INFO - API Request: GET /api/plantillas/10/campos-disponibles Status: 200 Time: 179.82ms
+2025-12-26 10:07:42,070 - correspondencia - INFO - API Request: GET /api/plantillas/10 Status: 200 Time: 178.82ms
+2025-12-26 10:07:42,305 - correspondencia - INFO - API Request: GET /api/plantillas/10/campos-disponibles Status: 200 Time: 87.14ms
+2025-12-26 10:10:59,783 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/10/datos-ejemplo Status: 200 Time: 0.00ms
+2025-12-26 10:10:59,801 - correspondencia - INFO - API Request: GET /api/plantillas/10/datos-ejemplo Status: 200 Time: 17.88ms
+2025-12-26 10:27:23,290 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 10:29:24,352 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 10:47:11,039 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 0.00ms
+2025-12-26 10:47:11,059 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 20.52ms
+2025-12-26 10:47:11,345 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 269.44ms
+2025-12-26 10:47:11,345 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 401 Time: 272.76ms
+2025-12-26 10:49:10,821 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-26 10:49:13,009 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 0.00ms
+2025-12-26 10:49:13,332 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 253.99ms
+2025-12-26 10:49:51,469 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 0.00ms
+2025-12-26 10:49:51,476 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 1.00ms
+2025-12-26 10:49:51,483 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 1.00ms
+2025-12-26 10:49:51,518 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 30.00ms
+2025-12-26 10:49:51,695 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 0.00ms
+2025-12-26 10:49:51,701 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-26 10:49:51,716 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 1.00ms
+2025-12-26 10:49:51,766 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 20.00ms
+2025-12-26 10:52:08,828 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 0.00ms
+2025-12-26 10:52:08,854 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 21.00ms
+2025-12-26 10:52:09,026 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 1.00ms
+2025-12-26 10:52:09,034 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-26 10:52:09,148 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 53.27ms
+2025-12-26 10:52:09,160 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 11.52ms
+2025-12-26 10:52:11,555 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-26 10:52:11,564 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 1.00ms
+2025-12-26 10:52:11,577 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-26 10:52:11,641 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 41.78ms
+2025-12-26 11:11:37,569 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/10 Status: 200 Time: 1.00ms
+2025-12-26 11:11:37,629 - correspondencia - INFO - API Request: DELETE /api/plantillas/10 Status: 200 Time: 44.99ms
+2025-12-26 11:11:37,662 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6 Status: 200 Time: 1.01ms
+2025-12-26 11:11:37,669 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-26 11:11:37,693 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 19.00ms
+2025-12-26 11:11:37,699 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 1.00ms
+2025-12-26 11:11:37,805 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 0.00ms
+2025-12-26 11:11:37,885 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 48.68ms
+2025-12-26 11:12:08,789 - correspondencia - INFO - API Request: OPTIONS /api/plantillas Status: 200 Time: 0.00ms
+2025-12-26 11:12:08,826 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 0.00ms
+2025-12-26 11:12:08,862 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/ Status: 200 Time: 1.23ms
+2025-12-26 11:12:08,887 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 422 Time: 19.00ms
+2025-12-26 11:15:28,303 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 11:15:42,228 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 11:15:50,063 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 11:16:00,755 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 0.00ms
+2025-12-26 11:16:00,772 - correspondencia - INFO - API Request: OPTIONS /api/auth/verificar-token Status: 200 Time: 16.73ms
+2025-12-26 11:16:00,891 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 104.10ms
+2025-12-26 11:16:01,069 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 271.08ms
+2025-12-26 11:16:01,128 - correspondencia - INFO - API Request: OPTIONS /api/estadisticas/dashboard Status: 200 Time: 0.00ms
+2025-12-26 11:16:01,359 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 178.17ms
+2025-12-26 11:16:12,437 - correspondencia - INFO - API Request: OPTIONS /api/proyectos Status: 200 Time: 0.00ms
+2025-12-26 11:16:12,445 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 0.21ms
+2025-12-26 11:16:12,452 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/ Status: 200 Time: 0.00ms
+2025-12-26 11:16:12,471 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 13.73ms
+2025-12-26 11:16:12,642 - correspondencia - INFO - API Request: OPTIONS /api/padrones Status: 200 Time: 1.00ms
+2025-12-26 11:16:12,647 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-26 11:16:12,671 - correspondencia - INFO - API Request: OPTIONS /api/padrones/ Status: 200 Time: 0.00ms
+2025-12-26 11:16:12,708 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 12.00ms
+2025-12-26 11:16:13,935 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 25.60ms
+2025-12-26 11:16:14,119 - correspondencia - INFO - API Request: OPTIONS /api/proyectos/6/estadisticas Status: 200 Time: 0.00ms
+2025-12-26 11:16:14,127 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.01ms
+2025-12-26 11:16:14,182 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 26.95ms
+2025-12-26 11:16:14,195 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 13.50ms
+2025-12-26 11:16:17,808 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 1.00ms
+2025-12-26 11:16:17,848 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 32.85ms
+2025-12-26 11:16:30,254 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 0.00ms
+2025-12-26 11:16:30,272 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 422 Time: 11.00ms
+2025-12-26 11:17:01,349 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 11:18:46,921 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 11:19:04,286 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 66.30ms
+2025-12-26 11:19:04,387 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 165.63ms
+2025-12-26 11:19:04,650 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 112.84ms
+2025-12-26 11:19:07,383 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 2.00ms
+2025-12-26 11:19:07,403 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 12.98ms
+2025-12-26 11:19:07,558 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-26 11:19:07,627 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 43.33ms
+2025-12-26 11:19:08,808 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 28.49ms
+2025-12-26 11:19:08,994 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 1.55ms
+2025-12-26 11:19:09,020 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 30.83ms
+2025-12-26 11:19:09,032 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 11.75ms
+2025-12-26 11:19:10,822 - correspondencia - INFO - API Request: GET /api/plantillas Status: 307 Time: 0.00ms
+2025-12-26 11:19:10,871 - correspondencia - INFO - API Request: GET /api/plantillas/ Status: 200 Time: 34.83ms
+2025-12-26 11:19:23,609 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 1.00ms
+2025-12-26 11:19:23,626 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 401 Time: 8.79ms
+2025-12-26 11:19:49,963 - correspondencia - INFO - AUDITORIA - auth.login - Usuario: 1
+2025-12-26 11:19:52,325 - correspondencia - INFO - API Request: GET /api/estadisticas/dashboard Status: 200 Time: 37.09ms
+2025-12-26 11:19:54,997 - correspondencia - INFO - API Request: GET /api/proyectos Status: 307 Time: 1.00ms
+2025-12-26 11:19:55,013 - correspondencia - INFO - API Request: GET /api/proyectos/ Status: 200 Time: 7.00ms
+2025-12-26 11:19:55,327 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 0.00ms
+2025-12-26 11:19:55,392 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 17.00ms
+2025-12-26 11:19:56,924 - correspondencia - INFO - API Request: GET /api/proyectos/6 Status: 200 Time: 14.50ms
+2025-12-26 11:19:57,383 - correspondencia - INFO - API Request: GET /api/padrones Status: 307 Time: 5.08ms
+2025-12-26 11:19:57,418 - correspondencia - INFO - API Request: GET /api/proyectos/6/estadisticas Status: 200 Time: 95.76ms
+2025-12-26 11:19:57,430 - correspondencia - INFO - API Request: GET /api/padrones/ Status: 200 Time: 12.48ms
+2025-12-26 11:20:10,173 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 1.01ms
+2025-12-26 11:20:10,199 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 422 Time: 16.00ms
+2025-12-26 11:20:57,416 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
+2025-12-26 11:21:04,573 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 54.00ms
+2025-12-26 11:21:04,654 - correspondencia - INFO - API Request: POST /api/auth/verificar-token Status: 200 Time: 134.20ms
+2025-12-26 11:21:22,855 - correspondencia - INFO - API Request: POST /api/plantillas Status: 307 Time: 1.00ms
+2025-12-26 11:21:23,210 - correspondencia - INFO - API Request: POST /api/plantillas/ Status: 200 Time: 346.64ms
+2025-12-26 11:21:23,475 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/11 Status: 200 Time: 1.00ms
+2025-12-26 11:21:23,481 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/11/campos-disponibles Status: 200 Time: 1.00ms
+2025-12-26 11:21:23,487 - correspondencia - INFO - API Request: OPTIONS /api/plantillas/11/campos Status: 200 Time: 1.00ms
+2025-12-26 11:21:23,560 - correspondencia - INFO - API Request: GET /api/plantillas/11 Status: 200 Time: 68.00ms
+2025-12-26 11:21:23,730 - correspondencia - INFO - API Request: GET /api/plantillas/11/campos-disponibles Status: 200 Time: 126.51ms
+2025-12-26 11:21:23,747 - correspondencia - INFO - API Request: GET /api/plantillas/11/campos Status: 200 Time: 9.00ms
+2025-12-26 11:21:23,969 - correspondencia - INFO - API Request: GET /api/plantillas/11/campos-disponibles Status: 200 Time: 33.15ms

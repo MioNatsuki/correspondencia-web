@@ -1,4 +1,4 @@
-// frontend/src/pages/plantillas/CrearPlantilla.js
+// frontend/src/pages/plantillas/CrearPlantilla.js - VERSIÓN CORREGIDA
 import React, { useState } from 'react';
 import {
   Container,
@@ -13,14 +13,15 @@ import {
   StepLabel,
   Grid,
   IconButton,
-  CircularProgress
+  CircularProgress,
+  LinearProgress
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { AiOutlineArrowLeft, AiOutlineUpload, AiOutlineFilePdf } from 'react-icons/ai';
 import { plantillasAPI } from '../../api/plantillas';
 
-const steps = ['Información básica', 'Subir PDF base', 'Configuración inicial'];
+const steps = ['Información básica', 'Subir PDF base', 'Confirmar'];
 
 const CrearPlantilla = () => {
   const navigate = useNavigate();
@@ -36,24 +37,31 @@ const CrearPlantilla = () => {
     pdfPreview: null
   });
   const [errors, setErrors] = useState({});
+  const [uploadProgress, setUploadProgress] = useState(0);
   
-  // Mutación para crear plantilla
+  // Mutación para crear plantilla - CORREGIDA
   const createMutation = useMutation({
-    mutationFn: (formData) => {
-      const data = new FormData();
-      data.append('nombre', formData.nombre);
-      data.append('descripcion', formData.descripcion || '');
-      data.append('proyecto_id', proyectoId);
-      data.append('ruta_archivo', formData.pdfFile);
+    mutationFn: (data) => {
+      const formData = new FormData();
+      formData.append('nombre', data.nombre);
+      if (data.descripcion) {
+        formData.append('descripcion', data.descripcion);
+      }
+      formData.append('proyecto_id', proyectoId);
+      formData.append('pdf_file', data.pdfFile); // ← NOMBRE CORRECTO: pdf_file
       
-      return plantillasAPI.createPlantilla(data);
+      return plantillasAPI.createPlantilla(formData);
     },
-    onSuccess: (data) => {
+    onSuccess: (response) => {
+      console.log('Plantilla creada exitosamente:', response);
       // Navegar al editor con la nueva plantilla
-      navigate(`/plantillas/${data.id}/editor`);
+      navigate(`/plantillas/${response.id}/editor`);
     },
     onError: (error) => {
-      setErrors({ submit: error.message });
+      console.error('Error creando plantilla:', error);
+      setErrors({ 
+        submit: error.response?.data?.detail || error.message || 'Error desconocido' 
+      });
     }
   });
   
@@ -64,11 +72,18 @@ const CrearPlantilla = () => {
       if (!formData.nombre.trim()) {
         newErrors.nombre = 'El nombre es requerido';
       }
+      if (!proyectoId) {
+        newErrors.proyecto = 'Se requiere un proyecto';
+      }
     }
     
     if (step === 1) {
       if (!formData.pdfFile) {
         newErrors.pdfFile = 'Debes subir un archivo PDF';
+      } else if (formData.pdfFile.type !== 'application/pdf') {
+        newErrors.pdfFile = 'Solo se permiten archivos PDF';
+      } else if (formData.pdfFile.size > 10 * 1024 * 1024) {
+        newErrors.pdfFile = 'El archivo no debe exceder 10MB';
       }
     }
     
@@ -101,21 +116,34 @@ const CrearPlantilla = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      console.log('Archivo seleccionado:', file.name, file.type, file.size);
+      
+      // Validaciones
+      const validations = [];
+      
       if (file.type !== 'application/pdf') {
-        setErrors({ pdfFile: 'Solo se permiten archivos PDF' });
+        validations.push('Solo se permiten archivos PDF');
+      }
+      
+      if (file.size > 10 * 1024 * 1024) {
+        validations.push('El archivo no debe exceder 10MB');
+      }
+      
+      if (validations.length > 0) {
+        setErrors({ pdfFile: validations.join(', ') });
         return;
       }
       
-      if (file.size > 10 * 1024 * 1024) { // 10MB
-        setErrors({ pdfFile: 'El archivo no debe exceder 10MB' });
-        return;
-      }
-      
-      setFormData(prev => ({
-        ...prev,
-        pdfFile: file,
-        pdfPreview: URL.createObjectURL(file)
-      }));
+      // Crear preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFormData(prev => ({
+          ...prev,
+          pdfFile: file,
+          pdfPreview: e.target.result
+        }));
+      };
+      reader.readAsDataURL(file);
       
       if (errors.pdfFile) {
         setErrors(prev => ({ ...prev, pdfFile: null }));
@@ -124,7 +152,34 @@ const CrearPlantilla = () => {
   };
   
   const handleSubmit = () => {
-    createMutation.mutate(formData);
+    if (!formData.nombre || !formData.pdfFile) {
+      setErrors({ submit: 'Nombre y PDF son requeridos' });
+      return;
+    }
+    
+    if (!proyectoId) {
+      setErrors({ submit: 'Se requiere un proyecto' });
+      return;
+    }
+    
+    // Simular progreso de upload
+    setUploadProgress(0);
+    const interval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(interval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 200);
+    
+    createMutation.mutate(formData, {
+      onSettled: () => {
+        clearInterval(interval);
+        setUploadProgress(100);
+      }
+    });
   };
   
   const renderStepContent = (step) => {
@@ -134,12 +189,12 @@ const CrearPlantilla = () => {
           <Box sx={{ mt: 3 }}>
             <TextField
               fullWidth
-              label="Nombre de la plantilla"
+              label="Nombre de la plantilla *"
               name="nombre"
               value={formData.nombre}
               onChange={handleChange}
               error={!!errors.nombre}
-              helperText={errors.nombre}
+              helperText={errors.nombre || "Ej: 'Carta de cobranza', 'Notificación de vencimiento'"}
               required
               sx={{ mb: 3 }}
             />
@@ -151,13 +206,15 @@ const CrearPlantilla = () => {
               value={formData.descripcion}
               onChange={handleChange}
               multiline
-              rows={4}
+              rows={3}
               placeholder="Describe el propósito de esta plantilla..."
             />
             
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-              Ejemplo: "Carta de cobranza para clientes morosos", "Notificación de vencimiento", etc.
-            </Typography>
+            {errors.proyecto && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {errors.proyecto}
+              </Alert>
+            )}
           </Box>
         );
         
@@ -183,10 +240,15 @@ const CrearPlantilla = () => {
                   mb: 3,
                   borderStyle: 'dashed',
                   borderWidth: 2,
-                  borderRadius: 3
+                  borderColor: errors.pdfFile ? 'error.main' : '#aae6d9',
+                  borderRadius: 3,
+                  '&:hover': {
+                    borderColor: errors.pdfFile ? 'error.dark' : '#7ab3a5',
+                    backgroundColor: 'rgba(170, 230, 217, 0.05)'
+                  }
                 }}
               >
-                Seleccionar archivo PDF
+                {formData.pdfFile ? 'Cambiar archivo PDF' : 'Seleccionar archivo PDF'}
               </Button>
             </label>
             
@@ -198,20 +260,28 @@ const CrearPlantilla = () => {
             
             {formData.pdfFile && (
               <Box sx={{ mt: 3 }}>
-                <Paper sx={{ p: 2, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                <Paper sx={{ 
+                  p: 2, 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: 2,
+                  border: '1px solid #aae6d9'
+                }}>
                   <AiOutlineFilePdf size={32} color="#e74c3c" />
                   <Box>
                     <Typography variant="body1" fontWeight={500}>
                       {formData.pdfFile.name}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      {(formData.pdfFile.size / 1024 / 1024).toFixed(2)} MB
+                      {(formData.pdfFile.size / 1024 / 1024).toFixed(2)} MB • PDF
                     </Typography>
                   </Box>
                 </Paper>
                 
                 <Alert severity="info" sx={{ mt: 2 }}>
-                  Asegúrate de que el PDF esté en tamaño OFICIO MEXICO (21.6cm × 35.6cm) para mejores resultados.
+                  <Typography variant="body2">
+                    Asegúrate de que el PDF esté en tamaño OFICIO MEXICO (21.6cm × 35.6cm) para mejores resultados.
+                  </Typography>
                 </Alert>
               </Box>
             )}
@@ -230,20 +300,38 @@ const CrearPlantilla = () => {
             
             <Paper sx={{ p: 3, bgcolor: 'rgba(170, 230, 217, 0.1)' }}>
               <Typography variant="subtitle2" gutterBottom fontWeight={600}>
-                Resumen:
+                Resumen de creación:
               </Typography>
               <Box sx={{ pl: 2 }}>
-                <Typography variant="body2">
-                  • Nombre: <strong>{formData.nombre}</strong>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  • <strong>Nombre:</strong> {formData.nombre || 'No especificado'}
                 </Typography>
-                <Typography variant="body2">
-                  • Archivo: <strong>{formData.pdfFile?.name || 'No seleccionado'}</strong>
+                {formData.descripcion && (
+                  <Typography variant="body2" sx={{ mb: 1 }}>
+                    • <strong>Descripción:</strong> {formData.descripcion}
+                  </Typography>
+                )}
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  • <strong>Archivo PDF:</strong> {formData.pdfFile?.name || 'No seleccionado'}
                 </Typography>
-                <Typography variant="body2">
-                  • Proyecto ID: <strong>{proyectoId || 'No especificado'}</strong>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  • <strong>Proyecto ID:</strong> {proyectoId || 'No especificado'}
                 </Typography>
               </Box>
             </Paper>
+            
+            {createMutation.isLoading && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Subiendo archivo y creando plantilla...
+                </Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={uploadProgress}
+                  sx={{ mt: 1 }}
+                />
+              </Box>
+            )}
           </Box>
         );
         
@@ -264,7 +352,7 @@ const CrearPlantilla = () => {
             Crear Nueva Plantilla
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            {proyectoId ? `Para proyecto: ${proyectoId}` : 'Sin proyecto asignado'}
+            {proyectoId ? `Para proyecto ID: ${proyectoId}` : 'Sin proyecto asignado'}
           </Typography>
         </Box>
       </Box>
@@ -293,8 +381,9 @@ const CrearPlantilla = () => {
         {/* Actions */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
           <Button
-            disabled={activeStep === 0}
+            disabled={activeStep === 0 || createMutation.isLoading}
             onClick={handleBack}
+            variant="outlined"
           >
             Atrás
           </Button>
@@ -303,6 +392,7 @@ const CrearPlantilla = () => {
             <Button
               onClick={() => navigate(-1)}
               variant="outlined"
+              disabled={createMutation.isLoading}
             >
               Cancelar
             </Button>

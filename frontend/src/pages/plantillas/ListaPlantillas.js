@@ -81,16 +81,23 @@ const ListaPlantillas = () => {
   // Mutación para eliminar plantilla
   const deleteMutation = useMutation({
     mutationFn: (plantillaId) => plantillasAPI.deletePlantilla(plantillaId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['plantillas-proyecto', proyectoId]);
-      setOpenDeleteDialog(false);
-      Swal.fire({
-        icon: 'success',
-        title: '¡Eliminada!',
-        text: 'La plantilla ha sido eliminada',
-        timer: 1500,
-        showConfirmButton: false,
-      });
+    onSuccess: (response) => {
+      if (response.success) {
+        queryClient.invalidateQueries(['plantillas-proyecto', proyectoId]);
+        Swal.fire({
+          icon: 'success',
+          title: '¡Eliminada!',
+          text: 'La plantilla ha sido eliminada',
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: response.message || 'Error eliminando plantilla',
+        });
+      }
     },
     onError: (error) => {
       Swal.fire({

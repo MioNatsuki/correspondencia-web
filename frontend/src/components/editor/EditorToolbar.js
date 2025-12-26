@@ -76,6 +76,7 @@ const EditorToolbar = ({
   onCut,
   onSave,
   onPreview,
+  onDeleteSelected,
   availableFields = [],
   selectedObjects = [],
   readOnly = false
@@ -176,6 +177,17 @@ const EditorToolbar = ({
             </IconButton>
           </Tooltip>
         </Box>
+        
+        <Tooltip title="Eliminar seleccionado (Del)">
+          <IconButton 
+            size="small" 
+            onClick={onDeleteSelected}
+            disabled={!hasSelection || readOnly}
+            sx={{ color: 'error.main' }}
+          >
+            <AiOutlineDelete />
+          </IconButton>
+        </Tooltip>
         
         {/* Grupo: Portapapeles */}
         <Box sx={{ display: 'flex', gap: 0.5, mr: 1, borderRight: '1px solid rgba(0,0,0,0.1)', pr: 1 }}>

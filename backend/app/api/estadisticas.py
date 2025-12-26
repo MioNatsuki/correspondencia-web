@@ -46,7 +46,7 @@ async def obtener_estadisticas_dashboard(
     Obtiene estadísticas para el dashboard
     """
     try:
-        print(f"Obteniendo estadísticas para usuario {current_user.id}")  # Debug
+        print(f"Obteniendo estadísticas para usuario {current_user.id}")
         
         # 1. Proyectos
         total_proyectos = db.query(Proyecto).filter(
@@ -58,14 +58,16 @@ async def obtener_estadisticas_dashboard(
             Proyecto.activo == True
         ).count()
         
-        # 2. Plantillas
-        total_plantillas = db.query(Plantilla.id).filter(
-            Plantilla.is_deleted == False
+        # 2. Plantillas - SOLO DE PROYECTOS NO ELIMINADOS
+        total_plantillas = db.query(Plantilla).join(Proyecto).filter(
+            Plantilla.is_deleted == False,
+            Proyecto.is_deleted == False
         ).count()
         
-        plantillas_activas = db.query(Plantilla).filter(
+        plantillas_activas = db.query(Plantilla).join(Proyecto).filter(
             Plantilla.is_deleted == False,
-            Plantilla.activa == True
+            Plantilla.activa == True,
+            Proyecto.is_deleted == False
         ).count()
         
         # 3. Emisiones del usuario actual
@@ -77,7 +79,7 @@ async def obtener_estadisticas_dashboard(
         documentos_generados = 0
         try:
             # Verificar si existe la tabla emisiones_final
-            from sqlalchemy import inspect, text
+            from sqlalchemy import inspect
             inspector = inspect(db.bind)
             tabla_existe = 'emisiones_final' in inspector.get_table_names()
             
@@ -104,14 +106,14 @@ async def obtener_estadisticas_dashboard(
         except Exception as e:
             print(f"Advertencia contando documentos hoy: {e}")
         
-        # 6. Proyectos recientes (últimos 5)
+        # 6. Proyectos recientes (últimos 5) - SOLO NO ELIMINADOS
         proyectos_recientes = db.query(Proyecto).filter(
             Proyecto.is_deleted == False
         ).order_by(Proyecto.fecha_creacion.desc()).limit(5).all()
         
         proyectos_list = []
         for proyecto in proyectos_recientes:
-            # Contar plantillas de este proyecto
+            # Contar plantillas de este proyecto (solo activas y no eliminadas)
             num_plantillas = db.query(Plantilla).filter(
                 Plantilla.proyecto_id == proyecto.id,
                 Plantilla.is_deleted == False
@@ -165,7 +167,7 @@ async def obtener_estadisticas_dashboard(
         }
         
     except Exception as e:
-        print(f"Error crítico en estadísticas: {str(e)}")  # Debug
+        print(f"Error crítico en estadísticas: {str(e)}")
         import traceback
         traceback.print_exc()
         raise HTTPException(

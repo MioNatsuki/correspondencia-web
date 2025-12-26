@@ -1,5 +1,5 @@
-// frontend/src/components/plantillas/EditorPlantilla.js
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+// frontend/src/pages/plantillas/EditorPlantilla.js
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -21,11 +21,11 @@ import {
   AiOutlineSave,
   AiOutlineArrowLeft,
   AiOutlineArrowRight,
-  AiOutlineClose,
   AiOutlineHome,
+  AiOutlineReload,
 } from 'react-icons/ai';
-import MuiAlert from '@mui/material/Alert'; // Necesario para Snackbar con severity
-import { useQuery, useMutation } from '@tanstack/react-query';
+import MuiAlert from '@mui/material/Alert';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import EditorToolbar from '../../components/editor/EditorToolbar';
 import FieldsPanel from '../../components/editor/FieldsPanel';
@@ -35,259 +35,308 @@ import TemplateCanvas from '../../components/editor/TemplateCanvas';
 import { plantillasAPI } from '../../api/plantillas';
 import { UPLOADS_BASE_URL } from '../../utils/constants';
 
+// Componente Alert para Snackbar
+const AlertComponent = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
+
 const EditorPlantilla = () => {
   const { plantillaId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Refs
+  const canvasRef = useRef(null);
+  const originalStateRef = useRef(null);
 
   // Estados
-  const [canvas, setCanvas] = useState(null);
   const [selectedObjects, setSelectedObjects] = useState([]);
   const [mode, setMode] = useState('edit'); // 'edit' | 'preview'
   const [previewIndex, setPreviewIndex] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
-
-  const canvasRef = useRef(null);
-  const originalStateRef = useRef(null); // Para restaurar al salir de preview
-
-  // Callbacks del canvas
-  const handleCanvasReady = useCallback((canvasInstance) => {
-    canvasRef.current = canvasInstance;
-    setCanvas(canvasInstance);
-  }, []);
-
-  const handleSelectionChanged = useCallback((objects) => {
-    setSelectedObjects(objects || []);
-  }, []);
+  const [forceRerender, setForceRerender] = useState(0);
 
   // ==================== QUERIES ====================
   const {
     data: plantilla,
     isLoading: loadingPlantilla,
     error: errorPlantilla,
+    refetch: refetchPlantilla,
   } = useQuery({
     queryKey: ['plantilla', plantillaId],
     queryFn: () => plantillasAPI.getPlantilla(plantillaId),
     enabled: !!plantillaId,
   });
 
+  // Campos disponibles del padrón
   const {
-    data: camposPlantilla = [],
-    isLoading: loadingCamposPlantilla,
+    data: camposData = { columnas: [] },
+    isLoading: loadingCampos,
   } = useQuery({
-    queryKey: ['plantilla-campos', plantillaId],
-    queryFn: () => plantillasAPI.getCampos(plantillaId),
+    queryKey: ['campos-disponibles', plantillaId],
+    queryFn: () => plantillasAPI.getCamposDisponibles(plantillaId),
     enabled: !!plantillaId,
   });
 
-  // Suponiendo que la plantilla tiene un padron_id o similar para obtener las columnas disponibles
-  // Si no lo tienes, reemplaza esto con la lógica correcta de tu backend
+  // Datos de ejemplo para preview
   const {
-    data: columnasPadron = [], // ← Aquí estaban usando "camposData" que no existía
-  } = useQuery({
-    queryKey: ['columnas-padron', plantilla?.padron_id],
-    queryFn: () => plantillasAPI.getColumnasPadron(plantilla.padron_id),
-    enabled: !!plantilla?.padron_id,
-  });
-
-  const {
-    data: previewData,
+    data: previewData = { datos: [] },
+    isLoading: loadingPreview,
     refetch: refetchPreview,
   } = useQuery({
-    queryKey: ['datos-preview', plantillaId, previewIndex],
+    queryKey: ['datos-ejemplo', plantillaId],
     queryFn: () => plantillasAPI.getDatosEjemplo(plantillaId, 10),
     enabled: !!plantillaId && mode === 'preview',
   });
 
+  // Obtener campos existentes de la plantilla
+  const {
+    data: camposExistente = [],
+    isLoading: loadingCamposExistente,
+    refetch: refetchCamposExistente,
+  } = useQuery({
+    queryKey: ['campos-plantilla', plantillaId],
+    queryFn: () => plantillasAPI.getCampos(plantillaId),
+    enabled: !!plantillaId,
+  });
+
   // ==================== MUTATIONS ====================
   const saveMutation = useMutation({
-    mutationFn: (campos) => plantillasAPI.updateCampos(plantillaId, campos),
-    onSuccess: () => {
+    mutationFn: (campos) => plantillasAPI.guardarCampos(plantillaId, campos),
+    onSuccess: (response) => {
       showSnackbar('Campos guardados exitosamente', 'success');
+      queryClient.invalidateQueries(['campos-plantilla', plantillaId]);
+      refetchCamposExistente();
     },
     onError: (error) => {
-      showSnackbar(`Error al guardar: ${error.message || 'Desconocido'}`, 'error');
+      showSnackbar(`Error al guardar: ${error.message || 'Error desconocido'}`, 'error');
     },
   });
 
-  // ==================== FUNCIONES AUXILIARES ====================
+  // ==================== CALLBACKS ====================
+  const handleCanvasReady = useCallback((canvasInstance) => {
+    console.log('Canvas listo en EditorPlantilla');
+  }, []);
+
+  const handleSelectionChanged = useCallback((objects) => {
+    console.log('Objetos seleccionados:', objects?.length || 0);
+    setSelectedObjects(objects || []);
+  }, []);
+
   const showSnackbar = (message, severity = 'info') => {
     setSnackbar({ open: true, message, severity });
   };
 
-  const loadExistingFields = (canvasInstance, campos) => {
-    campos.forEach((campo, index) => {
-      if (campo.tipo === 'texto') {
-        TemplateCanvas.addTextField(canvasInstance, {
-          left: campo.x,
-          top: campo.y,
-          width: campo.ancho,
-          height: campo.alto,
-          text: campo.texto_fijo || '',
-          fontSize: campo.tamano_fuente,
-          fontFamily: campo.fuente,
-          fill: campo.color,
-          textAlign: campo.alineacion,
-          name: `text_${index}`,
-          metadata: {
-            fieldType: 'text',
-            campoId: campo.id,
-          },
-        });
-      } else if (campo.tipo === 'campo') {
-        TemplateCanvas.addDynamicField(canvasInstance, campo.columna_padron, {
-          left: campo.x,
-          top: campo.y,
-          width: campo.ancho,
-          height: campo.alto,
-          fontSize: campo.tamano_fuente,
-          fontFamily: campo.fuente,
-          fill: campo.color,
-          textAlign: campo.alineacion,
-          name: `field_${index}`,
-          metadata: {
-            fieldType: 'dynamic',
-            campoId: campo.id,
-            fieldName: campo.columna_padron,
-          },
-        });
+  // ==================== MÉTODOS CANVAS ====================
+  const addTextField = () => {
+    if (canvasRef.current) {
+      const textbox = canvasRef.current.addTextField({
+        left: 100,
+        top: 100,
+        text: 'Nuevo texto',
+        fontSize: 12,
+        fontFamily: 'Arial',
+        fill: '#000000',
+        textAlign: 'left',
+      });
+      
+      if (textbox) {
+        console.log('Cuadro de texto agregado:', textbox);
       }
-    });
+    } else {
+      console.error('Canvas ref no disponible');
+    }
+  };
+
+  const addDynamicField = (field) => {
+    if (canvasRef.current && field) {
+      const fieldName = field.nombre || field;
+      const textbox = canvasRef.current.addDynamicField(fieldName, {
+        left: 100,
+        top: 150,
+        fontSize: 12,
+        fontFamily: 'Arial',
+        fill: '#2196f3',
+        textAlign: 'left',
+      });
+      
+      if (textbox) {
+        console.log('Campo dinámico agregado:', fieldName);
+      }
+    } else {
+      console.error('Canvas ref no disponible o campo inválido');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!canvasRef.current) {
+      showSnackbar('El canvas no está listo', 'error');
+      return;
+    }
+
+    try {
+      const estado = canvasRef.current.getCanvasState();
+      console.log('Estado del canvas para guardar:', estado);
+      
+      if (!estado.objects || estado.objects.length === 0) {
+        showSnackbar('No hay campos para guardar', 'warning');
+        return;
+      }
+      
+      const campos = convertirEstadoACampos(estado);
+      console.log('Campos convertidos:', campos);
+      
+      saveMutation.mutate(campos);
+      
+    } catch (error) {
+      console.error('Error en handleSave:', error);
+      showSnackbar(`Error guardando: ${error.message}`, 'error');
+    }
   };
 
   const convertirEstadoACampos = (estado) => {
-    return estado.objects.map((obj, index) => ({
-      nombre: obj.name || `campo_${index}`,
-      tipo: obj.metadata?.fieldType === 'dynamic' ? 'campo' : 'texto',
-      x: obj.left,
-      y: obj.top,
-      ancho: obj.width,
-      alto: obj.height,
-      alineacion: obj.textAlign || 'left',
-      fuente: obj.fontFamily || 'Arial',
-      tamano_fuente: obj.fontSize || 12,
-      color: obj.fill || '#000000',
-      negrita: obj.fontWeight === 'bold',
-      cursiva: obj.fontStyle === 'italic',
-      texto_fijo: obj.metadata?.fieldType === 'text' ? obj.text : null,
-      columna_padron: obj.metadata?.fieldName || null,
-      orden: index,
-      activo: true,
-    }));
-  };
+    if (!estado || !estado.objects) return [];
+    
+    return estado.objects.map((obj, index) => {
+      const base = {
+        nombre: obj.metadata?.nombre || `campo_${index + 1}`,
+        tipo: obj.metadata?.fieldType === 'dynamic' ? 'campo' : 'texto',
+        x: obj.left || 0,
+        y: obj.top || 0,
+        ancho: obj.width || 200,
+        alto: obj.height || 40,
+        alineacion: obj.textAlign || 'left',
+        fuente: obj.fontFamily || 'Arial',
+        tamano_fuente: obj.fontSize || 12,
+        color: obj.fill || '#000000',
+        negrita: obj.fontWeight === 'bold',
+        cursiva: obj.fontStyle === 'italic',
+        orden: index,
+        activo: true
+      };
 
-  const handleSave = () => {
-    if (!canvas) return;
-
-    const estado = TemplateCanvas.getCanvasState(canvas);
-    const campos = convertirEstadoACampos(estado);
-
-    saveMutation.mutate(campos);
+      if (obj.metadata?.fieldType === 'dynamic') {
+        return {
+          ...base,
+          columna_padron: obj.metadata.fieldName,
+          texto_fijo: null
+        };
+      } else {
+        return {
+          ...base,
+          texto_fijo: obj.text || '',
+          columna_padron: null
+        };
+      }
+    });
   };
 
   // ==================== VISTA PREVIA ====================
   const togglePreviewMode = () => {
     const newMode = mode === 'edit' ? 'preview' : 'edit';
+    console.log(`Cambiando modo: ${mode} -> ${newMode}`);
 
-    if (newMode === 'preview' && canvas) {
-      // Guardar estado original antes de modificar textos
-      originalStateRef.current = canvas.toJSON();
+    if (newMode === 'preview' && canvasRef.current) {
+      // Guardar estado actual antes de entrar en preview
+      try {
+        const currentState = canvasRef.current.getCanvasState();
+        originalStateRef.current = currentState;
+        console.log('Estado guardado para preview:', currentState);
+        
+        // Forzar render para asegurar que se guarde el estado
+        if (canvasRef.current.fabricInstance) {
+          canvasRef.current.fabricInstance.renderAll();
+        }
+      } catch (error) {
+        console.error('Error guardando estado para preview:', error);
+      }
+      
+      // Cargar datos para preview
+      refetchPreview();
     }
 
-    if (mode === 'preview' && newMode === 'edit' && originalStateRef.current && canvas) {
+    if (mode === 'preview' && newMode === 'edit' && originalStateRef.current && canvasRef.current) {
       // Restaurar estado original
-      canvas.loadFromJSON(originalStateRef.current, canvas.renderAll.bind(canvas));
-      originalStateRef.current = null;
+      try {
+        console.log('Restaurando estado desde preview:', originalStateRef.current);
+        canvasRef.current.loadFields(originalStateRef.current.objects);
+        originalStateRef.current = null;
+      } catch (error) {
+        console.error('Error restaurando estado desde preview:', error);
+        showSnackbar('Error al volver al modo edición', 'error');
+      }
     }
 
     setMode(newMode);
     setPreviewIndex(0);
-
-    if (newMode === 'preview') {
-      refetchPreview();
-    }
   };
 
-  const updatePreview = useCallback(() => {
-    if (!canvas || !previewData?.datos || previewData.datos.length === 0) return;
-
-    const datosRegistro = previewData.datos[previewIndex] || {};
-
-    canvas.getObjects().forEach((obj) => {
-      if (obj.metadata?.fieldType === 'dynamic' && obj.metadata?.fieldName) {
-        const valor = datosRegistro[obj.metadata.fieldName] ?? `<<${obj.metadata.fieldName}>>`;
-        obj.set('text', valor);
-      }
-    });
-
-    canvas.renderAll();
-  }, [canvas, previewData, previewIndex]);
-
+  // Actualizar preview cuando cambian los datos
   useEffect(() => {
-    if (mode === 'preview' && canvas) {
-      updatePreview();
+    if (mode === 'preview' && previewData?.datos && previewData.datos.length > 0 && canvasRef.current) {
+      console.log('Actualizando preview con índice:', previewIndex);
+      console.log('Datos disponibles:', previewData.datos[previewIndex]);
+      
+      const datosRegistro = previewData.datos[previewIndex] || {};
+      console.log('Datos para preview:', datosRegistro);
+      
+      try {
+        // Cargar campos existentes primero
+        if (camposExistente.length > 0) {
+          canvasRef.current.loadFields(camposExistente);
+        }
+        
+        // Aplicar datos de preview
+        setTimeout(() => {
+          if (canvasRef.current) {
+            canvasRef.current.updatePreview(datosRegistro);
+          }
+        }, 100);
+      } catch (error) {
+        console.error('Error actualizando preview:', error);
+      }
     }
-  }, [mode, previewIndex, previewData, canvas, updatePreview]);
+  }, [mode, previewIndex, previewData, camposExistente]);
 
   const handleNextPreview = () => {
-    if (!previewData?.datos) return;
-    setPreviewIndex((prev) => (prev < previewData.datos.length - 1 ? prev + 1 : 0));
+    if (!previewData?.datos || previewData.datos.length === 0) return;
+    setPreviewIndex((prev) => 
+      prev < previewData.datos.length - 1 ? prev + 1 : 0
+    );
   };
 
   const handlePrevPreview = () => {
-    if (!previewData?.datos) return;
-    setPreviewIndex((prev) => (prev > 0 ? prev - 1 : previewData.datos.length - 1));
+    if (!previewData?.datos || previewData.datos.length === 0) return;
+    setPreviewIndex((prev) => 
+      prev > 0 ? prev - 1 : previewData.datos.length - 1
+    );
   };
 
-  // ==================== CARGA DE CAMPOS EXISTENTES ====================
+  // ==================== CARGA INICIAL ====================
   useEffect(() => {
-    if (!canvas || camposPlantilla.length === 0) return;
-
-    canvas.clear();
-    loadExistingFields(canvas, camposPlantilla);
-  }, [canvas, camposPlantilla]);
-
-  // Limpieza al desmontar
-  useEffect(() => {
-    return () => {
-      if (canvasRef.current) {
-        try {
-          canvasRef.current.dispose();
-        } catch (err) {
-          console.error('Error limpiando canvas:', err);
-        }
+    if (canvasRef.current && camposExistente.length > 0 && mode === 'edit') {
+      console.log('Cargando campos existentes:', camposExistente);
+      try {
+        canvasRef.current.loadFields(camposExistente);
+      } catch (error) {
+        console.error('Error cargando campos iniciales:', error);
       }
-    };
-  }, []);
+    }
+  }, [canvasRef.current, camposExistente, mode, forceRerender]);
 
-  // ==================== FUNCIONES TOOLBAR ====================
-  const handleAddTextField = () => {
-    if (!canvas) return;
-    TemplateCanvas.addTextField(canvas, {
-      left: 100,
-      top: 100,
-      text: 'Texto de ejemplo',
-      fontSize: 12,
-      fontFamily: 'Arial',
-      fill: '#000000',
-    });
-  };
+  // Forzar recarga cuando cambia el modo
+  useEffect(() => {
+    setForceRerender(prev => prev + 1);
+  }, [mode]);
 
-  const handleAddDynamicField = (fieldName) => {
-    if (!canvas) return;
-    TemplateCanvas.addDynamicField(canvas, fieldName, {
-      left: 100,
-      top: 150,
-      fontSize: 12,
-      fontFamily: 'Arial',
-      fill: '#2196f3',
-    });
-  };
-
-  // ==================== RENDER ====================
+  // ==================== MANEJO DE ERRORES ====================
   if (loadingPlantilla) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+        <CircularProgress size={60} />
+        <Typography variant="body2" sx={{ ml: 2 }}>
+          Cargando plantilla...
+        </Typography>
       </Box>
     );
   }
@@ -295,31 +344,49 @@ const EditorPlantilla = () => {
   if (errorPlantilla) {
     return (
       <Container sx={{ mt: 4 }}>
-        <Alert severity="error">
-          Error cargando plantilla: {errorPlantilla.message || 'Desconocido'}
-          <Button sx={{ ml: 2 }} onClick={() => navigate('/plantillas')}>
-            Volver
-          </Button>
+        <Alert 
+          severity="error"
+          action={
+            <Button 
+              color="inherit" 
+              size="small" 
+              onClick={() => navigate('/plantillas')}
+            >
+              Volver
+            </Button>
+          }
+        >
+          Error cargando plantilla: {errorPlantilla.message || 'Error desconocido'}
         </Alert>
       </Container>
     );
   }
 
+  // ==================== URLS Y DATOS ====================
+  const pdfUrl = plantilla?.ruta_archivo 
+    ? `${UPLOADS_BASE_URL}/${plantilla.ruta_archivo}`
+    : null;
+
+  console.log('PDF URL:', pdfUrl);
+  console.log('Plantilla:', plantilla);
+  console.log('Campos disponibles:', camposData?.columnas?.length || 0);
+  console.log('Campos existentes:', camposExistente.length);
+  console.log('Preview data:', previewData?.datos?.length || 0);
+
   return (
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f5f7fa' }}>
       {/* Header */}
-      <Paper
-        sx={{
-          p: 2,
-          borderRadius: 0,
-          borderBottom: '1px solid #e0e0e0',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
+      <Paper sx={{
+        p: 2,
+        borderRadius: 0,
+        borderBottom: '1px solid #e0e0e0',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexShrink: 0,
+      }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <IconButton onClick={() => navigate('/plantillas')} size="small">
+          <IconButton onClick={() => navigate(-1)} size="small">
             <AiOutlineHome />
           </IconButton>
           <Box>
@@ -328,7 +395,7 @@ const EditorPlantilla = () => {
             </Typography>
             <Typography variant="caption" color="text.secondary">
               {mode === 'edit' ? 'Modo Edición' : 'Modo Vista Previa'}
-              {mode === 'preview' && previewData?.datos && (
+              {mode === 'preview' && previewData?.datos && previewData.datos.length > 0 && (
                 ` • Registro ${previewIndex + 1} de ${previewData.datos.length}`
               )}
             </Typography>
@@ -336,17 +403,8 @@ const EditorPlantilla = () => {
         </Box>
 
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-          <ToggleButtonGroup value={mode} exclusive onChange={togglePreviewMode} size="small">
-            <ToggleButton value="edit">
-              <AiOutlineEdit /> Editar
-            </ToggleButton>
-            <ToggleButton value="preview">
-              <AiOutlineEye /> Vista Previa
-            </ToggleButton>
-          </ToggleButtonGroup>
-
-          {mode === 'preview' && previewData?.datos && (
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
+          {mode === 'preview' && previewData?.datos && previewData.datos.length > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
               <IconButton size="small" onClick={handlePrevPreview}>
                 <AiOutlineArrowLeft />
               </IconButton>
@@ -359,73 +417,109 @@ const EditorPlantilla = () => {
             </Box>
           )}
 
+          <ToggleButtonGroup 
+            value={mode} 
+            exclusive 
+            onChange={togglePreviewMode}
+            size="small"
+          >
+            <ToggleButton value="edit">
+              <AiOutlineEdit /> Editar
+            </ToggleButton>
+            <ToggleButton value="preview">
+              <AiOutlineEye /> Vista Previa
+            </ToggleButton>
+          </ToggleButtonGroup>
+
           <Button
             variant="contained"
             startIcon={<AiOutlineSave />}
             onClick={handleSave}
-            disabled={saveMutation.isPending || mode === 'preview' || !canvas}
-            sx={{ ml: 2, bgcolor: '#aae6d9', '&:hover': { bgcolor: '#7ab3a5' } }}
+            disabled={saveMutation.isPending || mode === 'preview'}
+            sx={{ 
+              ml: 2, 
+              bgcolor: '#aae6d9', 
+              '&:hover': { bgcolor: '#7ab3a5' },
+              minWidth: 120
+            }}
           >
             {saveMutation.isPending ? 'Guardando...' : 'Guardar'}
           </Button>
+
+          <IconButton
+            size="small"
+            onClick={() => {
+              refetchPlantilla();
+              refetchCamposExistente();
+              showSnackbar('Datos recargados', 'info');
+            }}
+            title="Recargar datos"
+          >
+            <AiOutlineReload />
+          </IconButton>
         </Box>
       </Paper>
 
       {/* Toolbar */}
-      <Box sx={{ px: 2, py: 1 }}>
+      <Box sx={{ px: 2, py: 1, flexShrink: 0 }}>
         <EditorToolbar
-          onAddTextField={handleAddTextField}
-          onAddDynamicField={handleAddDynamicField}
+          onAddTextField={addTextField}
+          onAddDynamicField={(field) => addDynamicField(field)}
           onSave={handleSave}
           onPreview={togglePreviewMode}
-          onUndo={() => canvas?.undo && canvas.undo()}
-          onRedo={() => canvas?.redo && canvas.redo()}
+          onUndo={() => console.log('Undo - Por implementar')}
+          onRedo={() => console.log('Redo - Por implementar')}
           onDelete={() => {
-            if (canvas && selectedObjects.length > 0) {
-              canvas.remove(...selectedObjects);
-              canvas.discardActiveObject();
-              canvas.renderAll();
+            if (canvasRef.current && selectedObjects.length > 0) {
+              canvasRef.current.removeSelected();
             }
           }}
-          availableFields={columnasPadron}
+          availableFields={camposData?.columnas || []}
           selectedObjects={selectedObjects}
+          isPreviewMode={mode === 'preview'}
           readOnly={mode === 'preview'}
         />
       </Box>
 
       {/* Contenido principal */}
-      <Grid container sx={{ flex: 1, overflow: 'hidden', px: 2, pb: 2, gap: 2 }}>
-        <Grid item xs={3} sx={{ height: '100%' }}>
+      <Grid container sx={{ flex: 1, overflow: 'hidden', px: 2, pb: 2, gap: 2, minHeight: 0 }}>
+        {/* Panel izquierdo - Campos disponibles */}
+        <Grid item xs={3} sx={{ height: '100%', minHeight: 0 }}>
           <FieldsPanel
             plantillaId={plantillaId}
-            onFieldSelect={(field) => handleAddDynamicField(field.nombre || field)}
-            onFieldDragStart={(field) => handleAddDynamicField(field.nombre || field)}
+            onFieldSelect={(field) => addDynamicField(field)}
             selectedFields={[]}
             readOnly={mode === 'preview'}
           />
         </Grid>
 
-        <Grid item xs={6} sx={{ height: '100%' }}>
-          <Paper sx={{ height: '100%', p: 2, borderRadius: 2 }}>
+        {/* Centro - Canvas del editor */}
+        <Grid item xs={6} sx={{ height: '100%', minHeight: 0 }}>
+          <Paper sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 2 }}>
             <TemplateCanvas
-              pdfUrl={plantilla?.ruta_archivo ? `${UPLOADS_BASE_URL}/${plantilla.ruta_archivo}` : null}
+              ref={canvasRef}
+              pdfUrl={pdfUrl}
               pageSize="OFICIO_MEXICO"
-              width="100%"
-              height="100%"
               onCanvasReady={handleCanvasReady}
               onSelectionChanged={handleSelectionChanged}
               readOnly={mode === 'preview'}
+              key={`canvas-${mode}-${forceRerender}`} // Forzar recreación cuando cambia el modo
             />
           </Paper>
         </Grid>
 
-        <Grid item xs={3} sx={{ height: '100%' }}>
+        {/* Panel derecho - Propiedades */}
+        <Grid item xs={3} sx={{ height: '100%', minHeight: 0 }}>
           <PropertiesPanel
             selectedObject={selectedObjects.length === 1 ? selectedObjects[0] : null}
             onPropertyChange={(property, value) => {
-              if (canvas && selectedObjects.length === 1) {
-                selectedObjects[0].set(property, value);
-                canvas.renderAll();
+              if (selectedObjects.length === 1 && canvasRef.current?.fabricInstance) {
+                try {
+                  selectedObjects[0].set(property, value);
+                  canvasRef.current.fabricInstance.renderAll();
+                } catch (error) {
+                  console.error('Error cambiando propiedad:', error);
+                }
               }
             }}
             readOnly={mode === 'preview'}
@@ -438,15 +532,14 @@ const EditorPlantilla = () => {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <MuiAlert
-          elevation={6}
-          variant="filled"
+        <AlertComponent 
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
         >
           {snackbar.message}
-        </MuiAlert>
+        </AlertComponent>
       </Snackbar>
     </Box>
   );
