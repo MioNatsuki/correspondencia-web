@@ -6,6 +6,7 @@ from app.database import get_db
 from app.models import Usuario
 from app.config import settings
 from app.schemas import TokenData
+from typing import List
 
 security = HTTPBearer()
 
@@ -75,3 +76,41 @@ def require_admin(
             detail="Se requiere rol de administrador"
         )
     return current_user
+
+def verificar_permisos_proyecto(usuario: Usuario, proyecto_id: int, roles_permitidos: List[str] = None):
+    """Verifica si usuario tiene acceso a proyecto con roles específicos"""
+    from app.models import UsuarioProyecto
+    
+    # Superadmin tiene acceso completo
+    if usuario.rol == "superadmin":
+        return True
+    
+    # Buscar asignación específica
+    asignacion = UsuarioProyecto.query.filter(
+        UsuarioProyecto.usuario_id == usuario.id,
+        UsuarioProyecto.proyecto_id == proyecto_id,
+        UsuarioProyecto.activo == True
+    ).first()
+    
+    if not asignacion:
+        raise HTTPException(
+            status_code=403,
+            detail="No tiene acceso a este proyecto"
+        )
+    
+    # Verificar roles si se especifican
+    if roles_permitidos and asignacion.rol not in roles_permitidos:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Se requiere uno de estos roles: {', '.join(roles_permitidos)}"
+        )
+    
+    return asignacion.rol
+
+def require_project_access(roles_permitidos: List[str] = None):
+    def decorator(current_user: Usuario = Depends(get_current_active_user)):
+        def inner(proyecto_id: int):
+            verificar_permisos_proyecto(current_user, proyecto_id, roles_permitidos)
+            return current_user
+        return inner
+    return decorator

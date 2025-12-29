@@ -41,9 +41,9 @@ class PDFGenerator:
     """Servicio principal para generación de PDFs"""
     
     # Dimensiones OFICIO MEXICO en mm
-    PAGE_WIDTH_MM = 215.9
-    PAGE_HEIGHT_MM = 340.1
-    MM_TO_POINTS = 2.83465  # 1mm = 2.83465 puntos (ReportLab)
+    PAGE_WIDTH_MM = 215.9  # 21.59 cm
+    PAGE_HEIGHT_MM = 340.1  # 34.01 cm
+    MM_TO_POINTS = 2.83465  # 1mm = 2.83465 puntos
     
     # Mapeo de alineaciones
     ALIGN_MAP = {
@@ -68,6 +68,147 @@ class PDFGenerator:
         self.max_workers = 4  # Número máximo de workers concurrentes
         
     # ========== MÉTODO PRINCIPAL ==========
+    def _validar_tamano_oficio(self, doc: fitz.Document) -> Tuple[bool, str]:
+        """Valida que el PDF sea tamaño Oficio México"""
+        if len(doc) == 0:
+            return False, "PDF vacío"
+        
+        page = doc[0]
+        rect = page.rect
+        
+        # Convertir puntos a mm
+        ancho_mm = rect.width / self.MM_TO_POINTS
+        alto_mm = rect.height / self.MM_TO_POINTS
+        
+        # Tolerancia de ±1mm
+        tolerancia = 1.0
+        ancho_min = self.PAGE_WIDTH_MM - tolerancia
+        ancho_max = self.PAGE_WIDTH_MM + tolerancia
+        alto_min = self.PAGE_HEIGHT_MM - tolerancia
+        alto_max = self.PAGE_HEIGHT_MM + tolerancia
+        
+        if not (ancho_min <= ancho_mm <= ancho_max):
+            return False, f"Ancho {ancho_mm:.2f}mm no es Oficio México ({self.PAGE_WIDTH_MM}mm)"
+        
+        if not (alto_min <= alto_mm <= alto_max):
+            return False, f"Alto {alto_mm:.2f}mm no es Oficio México ({self.PAGE_HEIGHT_MM}mm)"
+        
+        return True, f"Tamaño válido: {ancho_mm:.2f}mm x {alto_mm:.2f}mm"
+    
+    def _ajustar_texto_a_caja(
+        self,
+        texto: str,
+        ancho_mm: float,
+        alto_mm: float,
+        fuente: str,
+        tamano_fuente: int,
+        estilo: Dict
+    ) -> Tuple[str, int]:
+        """
+        Ajusta texto para que quepa en el espacio designado
+        Returns: (texto_ajustado, nuevo_tamano_fuente)
+        """
+        # Calcular ancho disponible en puntos
+        ancho_pt = ancho_mm * self.MM_TO_POINTS
+        
+        # Calcular alto disponible en puntos (aproximado)
+        alto_pt = alto_mm * self.MM_TO_POINTS
+        
+        # Altura aproximada de una línea (1.2 * tamaño fuente)
+        altura_linea = tamano_fuente * 1.2
+        
+        # Máximo de líneas que caben
+        max_lineas = max(1, int(alto_pt / altura_linea))
+        
+        # Si el texto cabe en una línea, usar
+        if len(texto) * (tamano_fuente * 0.6) <= ancho_pt:
+            return texto, tamano_fuente
+        
+        # Intentar dividir en múltiples líneas
+        palabras = texto.split()
+        lineas = []
+        linea_actual = ""
+        
+        for palabra in palabras:
+            prueba = f"{linea_actual} {palabra}".strip()
+            if len(prueba) * (tamano_fuente * 0.6) <= ancho_pt:
+                linea_actual = prueba
+            else:
+                if linea_actual:
+                    lineas.append(linea_actual)
+                linea_actual = palabra
+        
+        if linea_actual:
+            lineas.append(linea_actual)
+        
+        # Si caben en el número máximo de líneas
+        if len(lineas) <= max_lineas:
+            return "\n".join(lineas), tamano_fuente
+        
+        # Si no caben, reducir tamaño de fuente
+        if tamano_fuente > 8:  # Tamaño mínimo
+            nuevo_tamano = tamano_fuente - 1
+            # Intentar recursivamente
+            return self._ajustar_texto_a_caja(
+                texto, ancho_mm, alto_mm, fuente, nuevo_tamano, estilo
+            )
+        
+        # Último recurso: truncar
+        caracteres_por_linea = int(ancho_pt / (8 * 0.6))  # Tamaño 8
+        texto_truncado = texto[:caracteres_por_linea * max_lineas]
+        
+        # Dividir en líneas del largo máximo
+        lineas_truncadas = []
+        for i in range(0, len(texto_truncado), caracteres_por_linea):
+            lineas_truncadas.append(texto_truncado[i:i+caracteres_por_linea])
+        
+        if len(lineas_truncadas) > max_lineas:
+            lineas_truncadas = lineas_truncadas[:max_lineas]
+            lineas_truncadas[-1] = lineas_truncadas[-1][:-3] + "..."
+        
+        return "\n".join(lineas_truncadas), 8
+    
+    def _formatear_valor(self, valor: Any, tipo: str, formato: str = None) -> str:
+        """Aplica formato según tipo de dato"""
+        if valor is None:
+            return ""
+        
+        try:
+            if tipo == 'moneda':
+                valor_num = float(valor)
+                return f"${valor_num:,.2f} MXN"
+                
+            elif tipo == 'fecha':
+                from datetime import datetime
+                if isinstance(valor, str):
+                    # Intentar parsear fecha
+                    for fmt in ['%Y-%m-%d', '%d/%m/%Y', '%Y%m%d']:
+                        try:
+                            dt = datetime.strptime(valor, fmt)
+                            return dt.strftime('%d/%m/%Y')
+                        except:
+                            continue
+                elif hasattr(valor, 'strftime'):
+                    return valor.strftime('%d/%m/%Y')
+                return str(valor)
+                
+            elif tipo == 'entero':
+                valor_num = float(valor)
+                return f"{int(valor_num):,}"
+                
+            elif tipo == 'porcentaje':
+                valor_num = float(valor)
+                return f"{valor_num:.2%}"
+                
+            elif tipo == 'codebar':
+                return f"*{valor}*"
+                
+            else:
+                return str(valor)
+                
+        except Exception:
+            return str(valor)
+    
     def generar_pdf_individual(
         self, 
         plantilla_def: Dict[str, Any], 

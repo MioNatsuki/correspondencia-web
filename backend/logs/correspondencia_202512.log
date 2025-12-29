@@ -1743,3 +1743,4 @@
 2025-12-26 15:47:34,492 - correspondencia - INFO - API Request: GET /api/plantillas/12/campos-disponibles Status: 200 Time: 59.00ms
 2025-12-26 15:47:34,508 - correspondencia - INFO - API Request: GET /api/plantillas/12/campos Status: 200 Time: 10.00ms
 2025-12-26 15:47:34,880 - correspondencia - INFO - API Request: GET /api/plantillas/12/campos-disponibles Status: 200 Time: 118.00ms
+2025-12-26 16:49:56,764 - correspondencia - WARNING - No se pudieron registrar fuentes TTF, usando fuentes estándar
